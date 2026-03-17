@@ -315,10 +315,9 @@ function banner(message) {
 
 function credits() {
   if (!shouldLog('info')) return;
-  console.log("FCA-SIFU");
-  console.log("Developed and maintained by NeoKEX");
-  console.log("GitHub: https://github.com/NeoKEX");
-  console.log("GitHub: https://github.com/LordXenos/FCA-SIFU");
+  console.log("Developed by SIFU");
+  console.log("GitHub: https://github.com/EWR-SIFU");
+  console.log("GitHub: https://github.com/EWR-SIFU");
 }
 
 function readLocalPackage() {
