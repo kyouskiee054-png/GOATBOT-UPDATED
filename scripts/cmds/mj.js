@@ -1,144 +1,86 @@
-const axios = require('axios');
-const fs = require('fs-extra');
-const path = require('path');
-const { createCanvas, loadImage } = require('canvas');
-
-const API_ENDPOINT = "https://sifu-mj-api.onrender.com/api/generate";
-
-async function downloadImage(url, cacheDir, index) {
-    const tempFilePath = path.join(cacheDir, `mj_${Date.now()}_${index}.jpg`);
-    const response = await axios({
-        method: 'get',
-        url: url,
-        responseType: 'arraybuffer',
-        timeout: 180000 // 3 min timeout 
-    });
-    await fs.writeFile(tempFilePath, response.data);
-    return tempFilePath;
-}
-
-async function createGrid(imagePaths, outputPath) {
-    const images = await Promise.all(imagePaths.map(p => loadImage(p)));
-    const size = images[0].width;
-    const padding = 10;
-    const canvas = createCanvas((size * 2) + (padding * 3), (size * 2) + (padding * 3));
-    const ctx = canvas.getContext('2d');
-
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const pos = [
-        { x: padding, y: padding },
-        { x: size + (padding * 2), y: padding },
-        { x: padding, y: size + (padding * 2) },
-        { x: size + (padding * 2), y: size + (padding * 2) }
-    ];
-
-    images.forEach((img, i) => {
-        ctx.drawImage(img, pos[i].x, pos[i].y, size, size);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.beginPath();
-        ctx.arc(pos[i].x + 35, pos[i].y + 35, 25, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 30px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(i + 1, pos[i].x + 35, pos[i].y + 45);
-    });
-
-    await fs.writeFile(outputPath, canvas.toBuffer('image/png'));
-    return outputPath;
-}
+const axios = require("axios");
+const { getStreamFromURL } = global.utils;
 
 module.exports = {
-    config: {
-        name: "midjourney",
-        aliases: ["mj", "imagine"],
-        version: "22.0",
-        author: "SiFu",
-        countDown: 20,
-        role: 0,
-        category: "ai-image"
-    },
+ config: {
+ name: "mj",
+ version: "1.0",
+ author: "Redwan - xnil",
+ countDown: 20,
+ role: 2,
+ shortDescription: {
+ en: "Generate AI art using MidJourney prompt"
+ },
+ longDescription: {
+ en: "Create stunning AI-generated images with a prompt using MidJourney's engine."
+ },
+ category: "image",
+ guide: {
+ en: "{pn} <prompt>"
+ }
+ },
 
-    onStart: async function ({ message, args, event, commandName }) {
-        const prompt = args.join(" ");
-        const cacheDir = path.join(__dirname, 'cache');
-        if (!fs.existsSync(cacheDir)) await fs.mkdirp(cacheDir);
+ onStart: async function ({ message, args, event }) {
+ const prompt = args.join(" ").trim();
+ if (!prompt) return message.reply("⚠️ Please provide a prompt to generate an image.");
 
-        if (!prompt) return message.reply("ᯓ★ ᴘʟᴇᴀsᴇ ᴘʀᴏᴠɪᴅᴇ ᴀ ᴘʀᴏᴍᴘᴛ!");
+ message.reply("⏳ Generating your MidJourney image. Please wait...");
 
-        // gen noti
-        const processingMsg = await message.reply("ᯓ★ ɢᴇɴᴇʀᴀᴛɪɴɢ ɪᴍᴀɢᴇs... ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ (ɪᴛ ᴍᴀʏ ᴛᴀᴋᴇ ᴜᴘ ᴛᴏ 𝟸 ᴍɪɴᴜᴛᴇs)");
-        message.reaction("⏳", event.messageID);
-        
-        let tempPaths = [];
+ try {
+ const apiUrl = `https://mjunlimited-hpkn.onrender.com/gen?prompt=${encodeURIComponent(prompt)}&api_key=xnil6xxx111`;
+ const res = await axios.get(apiUrl);
 
-        try {
-            
-            const res = await axios.get(`${API_ENDPOINT}?prompt=${encodeURIComponent(prompt)}&model=Midjourney_6_1&ratio=1:1`, {
-                timeout: 300000 
-            });
+ if (!res.data?.success || !res.data?.combined_img || !res.data?.original_images) {
+ return message.reply("❌ Image generation failed. Please try again later.");
+ }
 
-            const imageUrls = res.data.images;
+ const collageStream = await getStreamFromURL(res.data.combined_img);
+ const images = res.data.original_images;
 
-            if (!imageUrls || imageUrls.length < 4) throw new Error("API error");
+ message.reply(
+ {
+ body: "🎨 Here's your generated image collage.\nReply with 1, 2, 3, or 4 to view an individual image.",
+ attachment: collageStream
+ },
+ (err, info) => {
+ if (err) return console.error(err);
 
-            for (let i = 0; i < 4; i++) {
-                const p = await downloadImage(imageUrls[i], cacheDir, i);
-                tempPaths.push(p);
-            }
+ global.GoatBot.onReply.set(info.messageID, {
+ commandName: this.config.name,
+ messageID: info.messageID,
+ author: event.senderID,
+ images
+ });
+ }
+ );
+ } catch (err) {
+ console.error("MidJourney API Error:", err);
+ return message.reply("❌ An error occurred while generating the image. Please try again later.");
+ }
+ },
 
-            const gridPath = path.join(cacheDir, `grid_${Date.now()}.png`);
-            await createGrid(tempPaths, gridPath);
+ onReply: async function ({ event, message, Reply }) {
+ const { author, images } = Reply;
 
-            // সফল হলে প্রসেসিং মেসেজ ডিলিট করে ইমেজ পাঠানো
-            await message.unsend(processingMsg.messageID);
+ if (event.senderID !== author) {
+ return message.reply("🚫 Only the original requester can select images.");
+ }
 
-            await message.reply({
-                body: ` ᴍɪᴅᴊᴏᴜʀɴᴇʏ ᴀɪ ᯓ★\n━━━━━━━━━━━━━\n✨ ᴘʀᴏᴍᴘᴛ: ${prompt}\n📷 ʀᴇᴘʟʏ 1-4 ᴛᴏ sᴇʟᴇᴄᴛ ᴏʀ 'ᴀʟʟ'`,
-                attachment: fs.createReadStream(gridPath)
-            }, (err, info) => {
-                global.GoatBot.onReply.set(info.messageID, {
-                    commandName,
-                    author: event.senderID,
-                    imageUrls,
-                    tempPaths,
-                    gridPath
-                });
-            });
-            message.reaction("✅", event.messageID);
-        } catch (e) {
-            console.error(e);
-            await message.unsend(processingMsg.messageID);
-            message.reply("❌ ɢᴇɴᴇʀᴀᴛɪᴏɴ ᴛɪᴍᴇᴏᴜᴛ ᴏʀ ғᴀɪʟᴇᴅ! ᴘʟᴇᴀsᴇ ᴛʀʏ ᴀɢᴀɪɴ.");
-            message.reaction("❌", event.messageID);
-        }
-    },
+ const choice = parseInt(event.body.trim());
 
-    onReply: async function ({ message, event, Reply }) {
-        if (event.senderID !== Reply.author) return;
-        const input = event.body.trim().toLowerCase();
-        message.reaction("⏳", event.messageID);
+ if (isNaN(choice) || choice < 1 || choice > images.length) {
+ return message.reply(`⚠️ Please reply with a number between 1 and ${images.length}.`);
+ }
 
-        try {
-            if (input === 'all') {
-                const streams = Reply.tempPaths.map(p => fs.createReadStream(p));
-                await message.reply({ body: "ᯓ★ ʜᴇʀᴇ ᴀʀᴇ ᴀʟʟ ɪᴍᴀɢᴇs:", attachment: streams });
-            } else {
-                const i = parseInt(input) - 1;
-                if (i >= 0 && i < 4) {
-                    await message.reply({
-                        body: `ᯓ★ ɪᴍᴀɢᴇ [${i + 1}] ᴅᴏᴡɴʟᴏᴀᴅᴇᴅ`,
-                        attachment: fs.createReadStream(Reply.tempPaths[i])
-                    });
-                }
-            }
-            message.reaction("✅", event.messageID);
-        } catch (e) {
-            message.reply("❌ ᴇʀʀᴏʀ sᴇɴᴅɪɴɢ ɪᴍᴀɢᴇ");
-        } finally {
-            // Cleanup on specific action can be handled here or by a separate cron
-        }
-    }
+ try {
+ const selectedImage = await getStreamFromURL(images[choice - 1]);
+ return message.reply({
+ body: `🖼️ Here is your selected image (${choice}/${images.length}):`,
+ attachment: selectedImage
+ });
+ } catch (err) {
+ console.error("Image Retrieval Error:", err);
+ return message.reply("❌ Failed to load the selected image. Please try again.");
+ }
+ }
 };

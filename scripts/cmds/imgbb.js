@@ -1,56 +1,75 @@
-const axios = require("axios");
-const FormData = require("form-data");
+const FormData = require('form-data');
+const axios = require('axios');
+const { getStreamFromURL } = global.utils;
+const regCheckURL = /^(http|https):\/\/[^ "]+$/;
 
 module.exports = {
   config: {
     name: "imgbb",
-    aliases: ["i"],
     version: "1.0",
-    author: "xnil6x",
+    author: "Jubayer",
     countDown: 5,
     role: 0,
-    description: {
-      en: "Upload image(s) to imgbb"
-    },
-    category: "uploader",
-    guide: {
-      en: "{pn} (reply to one or more images)"
-    }
+    shortDescription: "Upload image to ImgBB",
+    longDescription: "Upload an image or GIF to ImgBB and get the direct link",
+    category: "utility",
+    guide: "{pn}imgbb <image_url_or_reply_to_image>"
   },
 
-  onStart: async function ({ api, event }) {
-    const imgbbApiKey = "1b4d99fa0c3195efe42ceb62670f2a25";
-    const attachments = event.messageReply?.attachments?.filter(att =>
-      ["photo", "sticker", "animated_image"].includes(att.type)
-    );
-
-    if (!attachments || attachments.length === 0) {
-      return api.sendMessage("Please reply to one or more image attachments.", event.threadID, event.messageID);
+  onStart: async function ({ message, event, args, api, commandName }) {
+    if (this.config.author !== "Jubayer") {
+      return message.reply(`[❌] • Unauthorized modification detected in "${commandName}" command. Author mismatch.`);
     }
 
     try {
-      const uploadedLinks = await Promise.all(
-        attachments.map(async (attachment, index) => {
-          const response = await axios.get(attachment.url, { responseType: "arraybuffer" });
-          const formData = new FormData();
-          formData.append("image", Buffer.from(response.data, "binary"), { filename: `image${index}.jpg` });
+      let imageStream;
+      let isGif = false;
 
-          const res = await axios.post("https://api.imgbb.com/1/upload", formData, {
-            headers: formData.getHeaders(),
-            params: {
-              key: imgbbApiKey
-            }
-          });
+      if (event.messageReply?.attachments?.length > 0) {
+        const attachment = event.messageReply.attachments[0];
+        if (attachment.type === "photo" || attachment.type === "animated_image") {
+          imageStream = await getStreamFromURL(attachment.url);
+          isGif = attachment.type === "animated_image";
+        }
+      }
+      else if (args[0] && regCheckURL.test(args[0])) {
+        imageStream = await getStreamFromURL(args[0]);
+        isGif = args[0].toLowerCase().endsWith('.gif');
+      } else {
+        return message.reply("[⚜️] • Please provide an image URL or reply to an image/GIF.");
+      }
 
-          return res.data.data.url;
-        })
-      );
+      if (!imageStream) {
+        return message.reply("Failed to get image stream ❌.");
+      }
 
-      return api.sendMessage(uploadedLinks.join("\n"), event.threadID, event.messageID);
+      const authResponse = await axios.get('https://imgbb.com');
+      const auth_token = authResponse.data.match(/auth_token="([^"]+)"/)[1];
 
-    } catch (err) {
-      console.error("Upload error:", err);
-      return api.sendMessage("Failed to upload one or more images to imgbb.", event.threadID, event.messageID);
+      const form = new FormData();
+      form.append('source', imageStream);
+      form.append('type', 'file');
+      form.append('action', 'upload');
+      form.append('timestamp', Date.now());
+      form.append('auth_token', auth_token);
+
+      const response = await axios.post('https://imgbb.com/json', form, {
+        headers: {
+          ...form.getHeaders()
+        }
+      });
+
+      if (response.data.success) {
+        const imageUrl = response.data.image.url;
+        const finalUrl = isGif ? `${imageUrl}.gif` : `${imageUrl}.jpeg`;
+        
+        return message.reply(`Image uploaded successfully!✅\n\nLink: ${finalUrl}`);
+      } else {
+        return message.reply("Failed to upload image to ImgBB ⁉️.");
+      }
+    } catch (error) {
+      console.error(error);
+      return message.reply("An error occurred while uploading the image.");
     }
   }
 };

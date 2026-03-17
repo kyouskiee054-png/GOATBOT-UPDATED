@@ -1,125 +1,95 @@
 function sleep(time) {
-	return new Promise((resolve) => setTimeout(resolve, time));
+  return new Promise((resolve) => setTimeout(resolve, time));
 }
 
 module.exports = {
-	config: {
-		name: "filteruser",
-		version: "1.6",
-		author: "NTKhang",
-		countDown: 5,
-		role: 1,
-		description: {
-			vi: "lọc thành viên nhóm theo số tin nhắn hoặc bị khóa acc",
-			en: "filter group members by number of messages or locked account"
-		},
-		category: "box chat",
-		guide: {
-			vi: "   {pn} [<số tin nhắn> | die]",
-			en: "   {pn} [<number of messages> | die]"
-		}
-	},
+  config: {
+    name: "filteruser",
+    version: "2.0.0",
+    author: "S1FU",
+    countDown: 5,
+    role: 1,
+    category: "𝖻𝗈𝗑 𝖼𝗁𝖺𝗍",
+    description: { en: "𝖿𝗂𝗅𝗍𝖾𝗋 𝗆𝖾𝗆𝖻𝖾𝗋𝗌 𝖻𝗒 𝗆𝖾𝗌𝗌𝖺𝗀𝖾𝗌 𝗈𝗋 𝖽𝖾𝖺𝖽 𝖺𝖼𝖼𝗈𝗎𝗇𝗍𝗌" },
+    guide: { en: "『 {pn} [<𝗇𝗎𝗆𝖻𝖾𝗋> | 𝖽𝗂𝖾] 』" }
+  },
 
-	langs: {
-		vi: {
-			needAdmin: "⚠ | Vui lòng thêm bot làm quản trị viên của box để sử dụng lệnh này",
-			confirm: "⚠ | Bạn có chắc chắn muốn xóa thành viên nhóm có số tin nhắn nhỏ hơn %1 không?\nThả cảm xúc bất kì vào tin nhắn này để xác nhận",
-			kickByBlock: "✓ | Đã xóa thành công %1 thành viên bị khóa acc",
-			kickByMsg: "✓ | Đã xóa thành công %1 thành viên có số tin nhắn nhỏ hơn %2",
-			kickError: "✗ | Đã xảy ra lỗi không thể kick %1 thành viên:\n%2",
-			noBlock: "✓ | Không có thành viên nào bị khóa acc",
-			noMsg: "✓ | Không có thành viên nào có số tin nhắn nhỏ hơn %1"
-		},
-		en: {
-			needAdmin: "⚠ | Please add the bot as a group admin to use this command",
-			confirm: "⚠ | Are you sure you want to delete group members with less than %1 messages?\nReact to this message to confirm",
-			kickByBlock: "✓ | Successfully removed %1 members unavailable account",
-			kickByMsg: "✓ | Successfully removed %1 members with less than %2 messages",
-			kickError: "✗ | An error occurred and could not kick %1 members:\n%2",
-			noBlock: "✓ | There are no members who are locked acc",
-			noMsg: "✓ | There are no members with less than %1 messages"
-		}
-	},
+  onStart: async function ({ api, args, threadsData, message, event, commandName }) {
+    const stylize = (text) => {
+      const fonts = {
+        "a":"𝖺","b":"𝖻","c":"𝖼","d":"𝖽","e":"𝖾","f":"𝖿","g":"𝗀","h":"𝗁","i":"𝗂","j":"𝗃","k":"𝗄","l":"𝗅","m":"𝗆",
+        "n":"𝗇","o":"𝗈","p":"𝗉","q":"𝗊","r":"𝗋","s":"𝗌","t":"𝗍","u":"𝗎","v":"𝗏","w":"𝗐","x":"𝗑","y":"𝗒","z":"𝗓",
+        "0":"𝟎","1":"𝟏","2":"𝟐","3":"𝟑","4":"𝟒","5":"𝟓","6":"𝟔","7":"𝟕","8":"𝟖","9":"𝟗"
+      };
+      return text.toString().toLowerCase().split('').map(char => fonts[char] || char).join('');
+    };
 
-	onStart: async function ({ api, args, threadsData, message, event, commandName, getLang }) {
-		const threadData = await threadsData.get(event.threadID);
-		if (!threadData.adminIDs.includes(api.getCurrentUserID()))
-			return message.reply(getLang("needAdmin"));
+    const threadData = await threadsData.get(event.threadID);
+    if (!threadData.adminIDs.includes(api.getCurrentUserID())) {
+      return message.reply(`✧ 𐃷 ${stylize("𝗉𝗅𝖾𝖺𝗌𝖾 𝗆𝖺𝗄𝖾 𝗆𝖾 𝖺𝗇 𝖺𝖽𝗆𝗂𝗇 𝖿𝗂𝗋𝗌𝗍")} Ი𐑼 𖹭`);
+    }
 
-		if (!isNaN(args[0])) {
-			message.reply(getLang("confirm", args[0]), (err, info) => {
-				global.GoatBot.onReaction.set(info.messageID, {
-					author: event.senderID,
-					messageID: info.messageID,
-					minimum: Number(args[0]),
-					commandName
-				});
-			});
-		}
-		else if (args[0] == "die") {
-			const threadData = await api.getThreadInfo(event.threadID);
-			const membersBlocked = threadData.userInfo.filter(user => user.type !== "User");
-			const errors = [];
-			const success = [];
-			for (const user of membersBlocked) {
-				if (user.type !== "User" && !threadData.adminIDs.some(id => id == user.id)) {
-					try {
-						await api.removeUserFromGroup(user.id, event.threadID);
-						success.push(user.id);
-					}
-					catch (e) {
-						errors.push(user.name);
-					}
-					await sleep(700);
-				}
-			}
+    if (!isNaN(args[0])) {
+      return message.reply(`✧ 𐃷 ${stylize("𝖽𝗈 𝗒𝗈𝗎 𝗋𝖾𝖺𝗅𝗅𝗒 𝗐𝖺𝗇𝗍 𝗍𝗈 𝗋𝖾𝗆𝗈𝗏𝖾 𝗆𝖾𝗆𝖻𝖾𝗋𝗌 𝗐𝗂𝗍𝗁 𝗅𝖾𝗌𝗌 𝗍𝗁𝖺𝗇")} ${args[0]} ${stylize("𝗆𝖾𝗌𝗌𝖺𝗀𝖾𝗌")}?\n\n🌷 ✨ ${stylize("𝗋𝖾𝖺𝖼𝗍 𝗍𝗈 𝖼𝗈𝗇𝖿𝗂𝗋𝗆")}... ᯓ★`, (err, info) => {
+        global.GoatBot.onReaction.set(info.messageID, {
+          author: event.senderID,
+          messageID: info.messageID,
+          minimum: Number(args[0]),
+          commandName
+        });
+      });
+    }
 
-			let msg = "";
-			if (success.length > 0)
-				msg += `${getLang("kickByBlock", success.length)}\n`;
-			if (errors.length > 0)
-				msg += `${getLang("kickError", errors.length, errors.join("\n"))}\n`;
-			if (msg == "")
-				msg += getLang("noBlock");
-			message.reply(msg);
-		}
-		else
-			message.SyntaxError();
-	},
+    if (args[0] == "die") {
+      const threadInfo = await api.getThreadInfo(event.threadID);
+      const membersBlocked = threadInfo.userInfo.filter(user => user.type !== "User");
+      
+      if (membersBlocked.length === 0) return message.reply(`✧ 𐃷 ${stylize("𝗇𝗈 𝗅𝗈𝖼𝗄𝖾𝖽 𝖺𝖼𝖼𝗈𝗎𝗇𝗍𝗌 𝖿𝗈𝗎𝗇𝖽")} Ი𐑼 𖹭`);
 
-	onReaction: async function ({ api, Reaction, event, threadsData, message, getLang }) {
-		const { minimum = 1, author } = Reaction;
-		if (event.userID != author)
-			return;
-		const threadData = await threadsData.get(event.threadID);
-		const botID = api.getCurrentUserID();
-		const membersCountLess = threadData.members.filter(member =>
-			member.count < minimum
-			&& member.inGroup == true
-			// ignore bot and admin box
-			&& member.userID != botID
-			&& !threadData.adminIDs.some(id => id == member.userID)
-		);
-		const errors = [];
-		const success = [];
-		for (const member of membersCountLess) {
-			try {
-				await api.removeUserFromGroup(member.userID, event.threadID);
-				success.push(member.userID);
-			}
-			catch (e) {
-				errors.push(member.name);
-			}
-			await sleep(700);
-		}
+      await message.reply(`🌷 ✨ ${stylize("𝖼𝗅𝖾𝖺𝗇𝗂𝗇𝗀 𝗎𝗉 𝖽𝖾𝖺𝖽 𝖺𝖼𝖼𝗈𝗎𝗇𝗍𝗌")}... ᯓ★`);
+      let success = 0;
 
-		let msg = "";
-		if (success.length > 0)
-			msg += `${getLang("kickByMsg", success.length, minimum)}\n`;
-		if (errors.length > 0)
-			msg += `${getLang("kickError", errors.length, errors.join("\n"))}\n`;
-		if (msg == "")
-			msg += getLang("noMsg", minimum);
-		message.reply(msg);
-	}
+      for (const user of membersBlocked) {
+        if (!threadData.adminIDs.includes(user.id)) {
+          try {
+            await api.removeUserFromGroup(user.id, event.threadID);
+            success++;
+          } catch (e) {}
+          await sleep(700);
+        }
+      }
+      return message.reply(`✨ ${stylize("𝗌𝗎𝖼𝖼𝖾𝗌𝗌𝖿𝗎𝗅𝗅𝗒 𝗋𝖾𝗆𝗈𝗏𝖾𝖽")} ${stylize(success)} ${stylize("𝖽𝖾𝖺𝖽 𝖺𝖼𝖼𝗈𝗎𝗇𝗍𝗌")} 𐃷 Ი𐑼`);
+    }
+
+    message.SyntaxError();
+  },
+
+  onReaction: async function ({ api, Reaction, event, threadsData, message }) {
+    const { minimum = 1, author, messageID } = Reaction;
+    if (event.userID != author) return;
+
+    const stylize = (text) => {
+      const fonts = {"a":"𝖺","b":"𝖻","c":"𝖼","d":"𝖽","e":"𝖾","f":"𝖿","g":"𝗀","h":"𝗁","i":"𝗂","j":"𝗃","k":"𝗄","l":"𝗅","m":"𝗆","n":"𝗇","o":"𝗈","p":"𝗉","q":"𝗊","r":"𝗋","s":"𝗌","t":"𝗍","u":"𝗎","v":"𝗏","w":"𝗐","x":"𝗑","y":"𝗒","z":"𝗓","0":"𝟎","1":"𝟏","2":"𝟐","3":"𝟑","4":"𝟒","5":"𝟓","6":"𝟔","7":"𝟕","8":"𝟖","9":"𝟗"};
+      return text.toString().toLowerCase().split('').map(char => fonts[char] || char).join('');
+    };
+
+    const threadData = await threadsData.get(event.threadID);
+    const botID = api.getCurrentUserID();
+    const targets = threadData.members.filter(m => m.count < minimum && m.inGroup && m.userID != botID && !threadData.adminIDs.includes(m.userID));
+
+    if (targets.length === 0) return message.reply(`✧ 𐃷 ${stylize("𝗇𝗈 𝗆𝖾𝗆𝖻𝖾𝗋𝗌 𝗆𝖾𝖾𝗍 𝗍𝗁𝗂𝗌 𝖼𝗋𝗂𝗍𝖾𝗋𝗂𝖺")} Ი𐑼 𖹭`);
+
+    api.unsendMessage(messageID);
+    await message.reply(`🌷 ✨ ${stylize("𝗋𝖾𝗆𝗈𝗏𝗂𝗇𝗀")} ${stylize(targets.length)} ${stylize("𝗂𝗇𝖺𝗿𝗍𝗂𝗏𝖾 𝗎𝗌𝖾𝗋𝗌")}... ᯓ★`);
+    
+    let success = 0;
+    for (const member of targets) {
+      try {
+        await api.removeUserFromGroup(member.userID, event.threadID);
+        success++;
+      } catch (e) {}
+      await sleep(700);
+    }
+    return message.reply(`✨ ${stylize("𝖿𝗂𝗅𝗍𝖾𝗋 𝖼𝗈𝗆𝗉𝗅𝖾𝗍𝖾!")} ${stylize(success)} ${stylize("𝗆𝖾𝗆𝖻𝖾𝗋𝗌 𝗄𝗂𝖼𝗄𝖾𝖽")} 𐃷 Ი𐑼`);
+  }
 };
