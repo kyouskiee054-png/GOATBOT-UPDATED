@@ -28,9 +28,9 @@ module.exports = {
         const fullName = (user.fullName).toUpperCase();
 
         const bgList = [
-          "https://i.imgur.com/TQa0A8u.gif",
-          "https://i.imgur.com/mCYvXgK.gif",
-          "https://i.imgur.com/Yv6iVCH.gif"
+          "https://i.imgur.com/umopPUQ.jpeg",
+          "https://i.imgur.com/HDEZgFR.jpeg",
+          "https://i.imgur.com/KN717Yb.jpeg"
         ];
         const randomBG = bgList[Math.floor(Math.random() * bgList.length)];
         
