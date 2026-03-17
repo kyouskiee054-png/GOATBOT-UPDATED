@@ -1,982 +1,915 @@
-const { createCanvas, loadImage, registerFont } = require("canvas");
+const moment = require("moment-timezone");
+const { createCanvas, loadImage } = require("canvas");
 const fs = require("fs-extra");
 const path = require("path");
-const crypto = require("crypto");
-const moment = require("moment-timezone");
 
-const BANK_NAME = "GOAT BANK";
-const BANK_CODE = "GOAT";
-const CURRENCY_SYMBOL = "$";
-const INTEREST_RATE = 0.02;
-const DAILY_WITHDRAW_LIMIT = 50000;
-const DAILY_TRANSFER_LIMIT = 100000;
-const MIN_DEPOSIT = 100;
-const MIN_WITHDRAW = 100;
-const MIN_TRANSFER = 50;
-const CARD_ANNUAL_FEE = 500;
-const CARD_VALIDITY_YEARS = 5;
+async function renderTxnReceipt({ type, amount, bankBalance, userName, userID, extra = "" }) {
+  const W = 1200, H = 800;
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext("2d");
 
-const fontPath = path.join(__dirname, "assets", "font", "BeVietnamPro-Bold.ttf");
-const fontPathRegular = path.join(__dirname, "assets", "font", "BeVietnamPro-Regular.ttf");
+  try {
+    const bg = await loadImage("https://i.postimg.cc/ryHfwpLJ/ezgif-22bfaf4827830f.jpg");
+    ctx.drawImage(bg, 0, 0, W, H);
+  } catch {
+    const grd = ctx.createLinearGradient(0, 0, 0, H);
+    grd.addColorStop(0, "#ffe6f2");
+    grd.addColorStop(1, "#f8e1ff");
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, W, H);
+  }
 
-try {
-    if (fs.existsSync(fontPath)) registerFont(fontPath, { family: "BankFont", weight: "bold" });
-    if (fs.existsSync(fontPathRegular)) registerFont(fontPathRegular, { family: "BankFontRegular" });
-} catch (e) {}
+  ctx.fillStyle = "rgba(255, 182, 193, 0.65)";
+  ctx.fillRect(0, 0, W, H);
 
-function generateAccountNumber() {
-    return "GB" + Date.now().toString().slice(-10) + Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+  const cardX = 80, cardY = 60, cardW = W - 160, cardH = H - 120, radius = 38;
+  ctx.save();
+  ctx.shadowColor = "rgba(255,105,180,0.4)";
+  ctx.shadowBlur = 35;
+  ctx.shadowOffsetX = 8;
+  ctx.shadowOffsetY = 12;
+  ctx.fillStyle = "#ffffff";
+  ctx.roundRect(cardX, cardY, cardW, cardH, radius);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = "#ff9ec1";
+  ctx.lineWidth = 4;
+  ctx.setLineDash([6, 12]);
+  ctx.strokeRect(cardX + 10, cardY + 10, cardW - 20, cardH - 20);
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = "#ff85c0";
+  ctx.globalAlpha = 0.7;
+  for (let i = 0; i < 12; i++) {
+    const x = cardX + Math.random() * cardW;
+    const y = cardY + Math.random() * cardH;
+    const size = 12 + Math.random() * 18;
+    ctx.font = `${size}px Segoe UI Emoji`;
+    ctx.fillText("♡", x, y);
+  }
+  ctx.globalAlpha = 1;
+
+  try {
+    const mark = await loadImage("https://i.postimg.cc/288zFmcg/shizuka-photo-5233.jpg");
+    ctx.globalAlpha = 0.06;
+    const mw = cardW * 0.65;
+    const mh = mw * (mark.height / mark.width);
+    ctx.drawImage(mark, cardX + (cardW - mw)/2, cardY + (cardH - mh)/2, mw, mh);
+    ctx.globalAlpha = 1;
+  } catch {}
+
+  ctx.fillStyle = "#ff3f93";
+  ctx.beginPath();
+  ctx.moveTo(cardX, cardY + 30);
+  ctx.lineTo(cardX + cardW, cardY + 30);
+  ctx.lineTo(cardX + cardW - 40, cardY + 90);
+  ctx.lineTo(cardX + 40, cardY + 90);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 48px 'Comic Sans MS', cursive, fantasy";
+  ctx.textAlign = "center";
+  ctx.fillText("Shizuka Bank  ˚୨୧⋆｡", cardX + cardW/2, cardY + 75);
+
+  ctx.font = "italic 22px Arial";
+  ctx.fillText(moment().tz("Asia/Dhaka").format("YYYY-MM-DD  •  HH:mm:ss"), cardX + cardW/2, cardY + 110);
+
+  const titleGrd = ctx.createLinearGradient(cardX + cardW/2 - 200, 0, cardX + cardW/2 + 200, 0);
+  titleGrd.addColorStop(0, "#ff1493");
+  titleGrd.addColorStop(1, "#db7093");
+  ctx.fillStyle = titleGrd;
+  ctx.font = "bold 64px 'Segoe UI', sans-serif";
+  ctx.fillText(`${type} ${extra ? extra : "Receipt"} ♡`, cardX + cardW/2, cardY + 190);
+
+  const sx = cardX + 80, sy = cardY + 260, lh = 60;
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#2d0b1e";
+  ctx.font = "bold 32px Arial";
+  ["Account Holder", "Account ID", "Amount", "Current Balance"].forEach((label, i) => {
+    ctx.fillText(label, sx, sy + i * lh);
+  });
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#4a148c";
+  ctx.font = "28px Arial";
+  ctx.fillText(userName, cardX + cardW - 80, sy);
+  ctx.fillText(userID.toString(), cardX + cardW - 80, sy + lh);
+
+  ctx.font = "bold 38px Arial";
+  ctx.fillStyle = type.includes("Deposit") || type.includes("Received") || type.includes("Daily") || type.includes("Level") ? "#2e7d32" : "#c62828";
+  ctx.fillText(`$${amount.toLocaleString("en-US")}`, cardX + cardW - 80, sy + lh * 2);
+
+  ctx.font = "28px Arial";
+  ctx.fillStyle = "#4a148c";
+  ctx.fillText(`$${bankBalance.toLocaleString("en-US")}`, cardX + cardW - 80, sy + lh * 3);
+
+  try {
+    const id = "SB-" + Date.now().toString(36).toUpperCase().slice(-8);
+    const qr = await loadImage(`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(type + " | UID:" + userID + " | TXN:" + id)}`);
+    ctx.drawImage(qr, cardX + 100, cardY + cardH - 220, 160, 160);
+  } catch {}
+
+  ctx.beginPath();
+  ctx.arc(cardX + cardW - 160, cardY + cardH - 140, 50, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 64, 129, 0.18)";
+  ctx.fill();
+  ctx.strokeStyle = "#ff4081";
+  ctx.lineWidth = 5;
+  ctx.stroke();
+  ctx.fillStyle = "#ff4081";
+  ctx.font = "bold 24px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("SHIZUKA ♡", cardX + cardW - 160, cardY + cardH - 130);
+
+  return canvas.toBuffer("image/png");
 }
 
-function generateCardNumber() {
-    let card = "4";
-    for (let i = 0; i < 15; i++) {
-        card += Math.floor(Math.random() * 10);
-    }
-    return card;
+// Loan receipt function (red theme)
+async function renderLoanReceipt({ type, amount, remainingLoan, userName, userID }) {
+  const W = 1200, H = 820;
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext("2d");
+
+  try {
+    const bg = await loadImage("https://i.postimg.cc/ryHfwpLJ/ezgif-22bfaf4827830f.jpg");
+    ctx.drawImage(bg, 0, 0, W, H);
+  } catch {
+    const grd = ctx.createLinearGradient(0, 0, W, H);
+    grd.addColorStop(0, "#ffe0e9");
+    grd.addColorStop(1, "#f8d7ff");
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, W, H);
+  }
+  ctx.fillStyle = "rgba(255, 105, 180, 0.55)";
+  ctx.fillRect(0, 0, W, H);
+
+  const cardX = 70, cardY = 55, cardW = W - 140, cardH = H - 110, radius = 42;
+  ctx.save();
+  ctx.shadowColor = "rgba(199, 21, 133, 0.5)";
+  ctx.shadowBlur = 40;
+  ctx.shadowOffsetY = 15;
+  ctx.fillStyle = "#fff0f5";
+  ctx.roundRect(cardX, cardY, cardW, cardH, radius);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = "#db2777";
+  ctx.lineWidth = 5;
+  ctx.setLineDash([8, 14]);
+  ctx.strokeRect(cardX + 12, cardY + 12, cardW - 24, cardH - 24);
+  ctx.setLineDash([]);
+
+  ctx.globalAlpha = 0.75;
+  ctx.fillStyle = "#e11d48";
+  for (let i = 0; i < 10; i++) {
+    const x = cardX + 30 + Math.random() * (cardW - 60);
+    const y = cardY + 80 + Math.random() * (cardH - 160);
+    ctx.font = `${18 + Math.random() * 22}px Segoe UI Emoji`;
+    ctx.fillText("💔", x, y);
+  }
+  ctx.globalAlpha = 1;
+
+  try {
+    const mark = await loadImage("https://i.postimg.cc/288zFmcg/shizuka-photo-5233.jpg");
+    ctx.globalAlpha = 0.07;
+    const mw = cardW * 0.62;
+    const mh = mw * (mark.height / mark.width);
+    ctx.drawImage(mark, cardX + (cardW - mw)/2, cardY + (cardH - mh)/2 - 20, mw, mh);
+    ctx.globalAlpha = 1;
+  } catch {}
+
+  ctx.fillStyle = "#e11d48";
+  ctx.beginPath();
+  ctx.moveTo(cardX, cardY + 35);
+  ctx.lineTo(cardX + cardW, cardY + 35);
+  ctx.lineTo(cardX + cardW - 45, cardY + 95);
+  ctx.lineTo(cardX + 45, cardY + 95);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 52px 'Comic Sans MS', cursive";
+  ctx.textAlign = "center";
+  ctx.fillText(type === "Loan Taken" ? "LOAN APPROVED 💸" : "LOAN REPAYMENT ♡", cardX + cardW/2, cardY + 78);
+
+  ctx.font = "20px Arial";
+  ctx.fillText(moment().tz("Asia/Dhaka").format("YYYY-MM-DD  •  HH:mm:ss"), cardX + cardW/2, cardY + 118);
+
+  ctx.fillStyle = "#9f1239";
+  ctx.font = "bold 68px Arial";
+  ctx.fillText(type, cardX + cardW/2, cardY + 205);
+
+  const sx = cardX + 90, sy = cardY + 280, lh = 62;
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#4c1d95";
+  ctx.font = "bold 34px Arial";
+  ctx.fillText("Account Holder", sx, sy);
+  ctx.fillText("Account ID", sx, sy + lh);
+  ctx.fillText(type === "Loan Taken" ? "Loan Amount" : "Repaid Amount", sx, sy + lh * 2);
+  ctx.fillText("Remaining Loan", sx, sy + lh * 3);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#1e3a8a";
+  ctx.font = "29px Arial";
+  ctx.fillText(userName, cardX + cardW - 90, sy);
+  ctx.fillText(userID.toString(), cardX + cardW - 90, sy + lh);
+
+  ctx.font = "bold 42px Arial";
+  ctx.fillStyle = "#e11d48";
+  ctx.fillText(`$${amount.toLocaleString("en-US")}`, cardX + cardW - 90, sy + lh * 2);
+
+  ctx.font = "bold 38px Arial";
+  ctx.fillStyle = remainingLoan > 0 ? "#b91c1c" : "#15803d";
+  ctx.fillText(`$${remainingLoan.toLocaleString("en-US")}`, cardX + cardW - 90, sy + lh * 3);
+
+  ctx.fillStyle = "#9f1239";
+  ctx.font = "bold 26px Arial";
+  ctx.fillText("⚠️ Daily penalty $5,000 until fully repaid", cardX + cardW/2, sy + lh * 4.2);
+
+  try {
+    const id = "LOAN-" + Date.now().toString(36).toUpperCase().slice(-8);
+    const qr = await loadImage(`https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=LOAN|UID:${userID}|REM:${remainingLoan}`);
+    ctx.drawImage(qr, cardX + 110, cardY + cardH - 210, 155, 155);
+  } catch {}
+
+  ctx.beginPath();
+  ctx.arc(cardX + cardW - 155, cardY + cardH - 135, 52, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(225, 29, 72, 0.2)";
+  ctx.fill();
+  ctx.strokeStyle = "#e11d48";
+  ctx.lineWidth = 6;
+  ctx.stroke();
+  ctx.fillStyle = "#e11d48";
+  ctx.font = "bold 26px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("SHIZUKA", cardX + cardW - 155, cardY + cardH - 125);
+  ctx.fillText("LOAN", cardX + cardW - 155, cardY + cardH - 98);
+
+  return canvas.toBuffer("image/png");
 }
 
-function generateCVV() {
-    return Math.floor(100 + Math.random() * 900).toString();
-}
+async function renderBankTopLeaderboard(topUsers) {
+  const W = 1000, H = 900 + topUsers.length * 60;
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext("2d");
 
-function generatePIN() {
-    return Math.floor(1000 + Math.random() * 9000).toString();
-}
+  const grd = ctx.createLinearGradient(0, 0, 0, H);
+  grd.addColorStop(0, "#fff0f5");
+  grd.addColorStop(1, "#f8e1ff");
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
 
-function hashPIN(pin) {
-    return crypto.createHash("sha256").update(pin + "goatbank_salt").digest("hex");
-}
+  ctx.fillStyle = "rgba(255, 182, 193, 0.6)";
+  ctx.fillRect(0, 0, W, H);
 
-function formatCardNumber(cardNumber) {
-    return cardNumber.replace(/(.{4})/g, "$1 ").trim();
-}
+  ctx.fillStyle = "#ff3f93";
+  ctx.fillRect(80, 60, W - 160, 140);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 58px 'Comic Sans MS', cursive";
+  ctx.textAlign = "center";
+  ctx.fillText("Shizuka Bank Top 10 ♡", W / 2, 140);
 
-function formatMoney(amount) {
-    return amount.toLocaleString("en-US");
-}
+  ctx.font = "italic 28px Arial";
+  ctx.fillText("Richest Bankers ૮₍ ˶•⤙•˶ ₎ა", W / 2, 190);
 
-function getExpiryDate(yearsFromNow = CARD_VALIDITY_YEARS) {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() + yearsFromNow);
-    return (date.getMonth() + 1).toString().padStart(2, "0") + "/" + date.getFullYear().toString().slice(-2);
-}
+  const startY = 240;
+  topUsers.forEach((user, i) => {
+    const rankY = startY + i * 65;
+    const rank = i + 1;
 
-async function createBankCard(cardData, userData) {
-    const width = 850;
-    const height = 540;
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext("2d");
-
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
-    if (cardData.cardType === "platinum") {
-        gradient.addColorStop(0, "#1a1a2e");
-        gradient.addColorStop(0.3, "#16213e");
-        gradient.addColorStop(0.6, "#0f3460");
-        gradient.addColorStop(1, "#1a1a2e");
-    } else if (cardData.cardType === "gold") {
-        gradient.addColorStop(0, "#b8860b");
-        gradient.addColorStop(0.3, "#daa520");
-        gradient.addColorStop(0.6, "#ffd700");
-        gradient.addColorStop(1, "#b8860b");
-    } else {
-        gradient.addColorStop(0, "#2c3e50");
-        gradient.addColorStop(0.3, "#34495e");
-        gradient.addColorStop(0.6, "#5d6d7e");
-        gradient.addColorStop(1, "#2c3e50");
-    }
-
-    ctx.fillStyle = gradient;
+    ctx.fillStyle = rank === 1 ? "#ffd700" : rank === 2 ? "#c0c0c0" : rank === 3 ? "#cd7f32" : "#e0e0e0";
     ctx.beginPath();
-    ctx.roundRect(0, 0, width, height, 30);
+    ctx.arc(140, rankY + 30, 45, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.roundRect(10, 10, width - 20, height - 20, 25);
-    ctx.stroke();
-
-    for (let i = 0; i < 5; i++) {
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.03 + i * 0.01})`;
-        ctx.lineWidth = 1;
-        ctx.arc(width * 0.7 + i * 20, height * 0.3 - i * 10, 150 + i * 30, 0, Math.PI * 2);
-        ctx.stroke();
-    }
-
-    ctx.fillStyle = "#d4af37";
-    ctx.beginPath();
-    ctx.roundRect(50, 150, 90, 70, 8);
-    ctx.fill();
-
-    ctx.strokeStyle = "#a67c00";
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 5; i++) {
-        ctx.beginPath();
-        ctx.moveTo(50, 158 + i * 13);
-        ctx.lineTo(140, 158 + i * 13);
-        ctx.stroke();
-    }
-    for (let i = 0; i < 3; i++) {
-        ctx.beginPath();
-        ctx.moveTo(65 + i * 25, 150);
-        ctx.lineTo(65 + i * 25, 220);
-        ctx.stroke();
-    }
-
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 32px Arial, sans-serif";
-    ctx.fillText(BANK_NAME, 50, 80);
-
-    ctx.font = "bold 14px Arial, sans-serif";
-    ctx.fillStyle = cardData.cardType === "gold" ? "#1a1a1a" : "#ffffff";
-    const typeText = cardData.cardType.toUpperCase();
-    ctx.fillText(typeText, width - ctx.measureText(typeText).width - 50, 80);
-
-    ctx.font = "bold 42px Arial, monospace";
-    ctx.fillStyle = "#ffffff";
-    ctx.letterSpacing = "4px";
-    const formattedCard = formatCardNumber(cardData.cardNumber);
-    ctx.fillText(formattedCard, 50, 300);
-
-    ctx.font = "bold 16px Arial, sans-serif";
-    ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-    ctx.fillText("VALID THRU", 50, 360);
-    ctx.fillText("CVV", 200, 360);
-
-    ctx.font = "bold 22px Arial, monospace";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(cardData.expiryDate, 50, 390);
-    ctx.fillText("***", 200, 390);
-
-    ctx.font = "bold 24px Arial, sans-serif";
-    ctx.fillStyle = "#ffffff";
-    const holderName = userData.name.toUpperCase().slice(0, 25);
-    ctx.fillText(holderName, 50, 470);
-
-    ctx.font = "bold 16px Arial, sans-serif";
-    ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-    ctx.fillText("DEBIT", width - 100, 470);
-
-    ctx.fillStyle = "#ff5f00";
-    ctx.beginPath();
-    ctx.arc(width - 130, 180, 40, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#eb001b";
-    ctx.beginPath();
-    ctx.arc(width - 90, 180, 40, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalCompositeOperation = "lighter";
-    ctx.fillStyle = "rgba(255, 95, 0, 0.5)";
-    ctx.beginPath();
-    ctx.arc(width - 110, 180, 25, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalCompositeOperation = "source-over";
-
-    ctx.font = "12px Arial, sans-serif";
-    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-    ctx.fillText(`ACC: ${cardData.accountNumber}`, 50, height - 30);
-
-    const buffer = canvas.toBuffer("image/png");
-    const outputPath = path.join(__dirname, "tmp", `card_${cardData.cardNumber.slice(-4)}_${Date.now()}.png`);
-    await fs.ensureDir(path.join(__dirname, "tmp"));
-    await fs.writeFile(outputPath, buffer);
-    return outputPath;
-}
-
-async function createTransactionReceipt(transaction, senderData, receiverData = null) {
-    const width = 600;
-    const height = 800;
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext("2d");
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
-
-    const headerGradient = ctx.createLinearGradient(0, 0, width, 120);
-    headerGradient.addColorStop(0, "#1a1a2e");
-    headerGradient.addColorStop(1, "#0f3460");
-    ctx.fillStyle = headerGradient;
-    ctx.fillRect(0, 0, width, 120);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 32px Arial, sans-serif";
+    ctx.font = "bold 42px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(BANK_NAME, width / 2, 55);
-    ctx.font = "16px Arial, sans-serif";
-    ctx.fillText("TRANSACTION RECEIPT", width / 2, 90);
+    ctx.fillText(rank, 140, rankY + 48);
+
+    if (rank === 1) {
+      ctx.font = "40px Segoe UI Emoji";
+      ctx.fillText("👑", 140, rankY + 10);
+    }
 
     ctx.textAlign = "left";
-    ctx.fillStyle = "#333333";
-    let y = 160;
+    ctx.fillStyle = "#4a148c";
+    ctx.font = "bold 34px Arial";
+    ctx.fillText(user.name || user.userID, 220, rankY + 35);
 
-    ctx.font = "bold 14px Arial, sans-serif";
-    ctx.fillStyle = "#666666";
-    ctx.fillText("TRANSACTION ID", 40, y);
-    ctx.font = "16px Arial, monospace";
-    ctx.fillStyle = "#1a1a2e";
-    ctx.fillText(transaction.transactionId, 40, y + 22);
-    y += 60;
+    ctx.font = "28px Arial";
+    ctx.fillText(`$${user.bankBalance.toLocaleString("en-US")}`, 220, rankY + 70);
 
-    ctx.font = "bold 14px Arial, sans-serif";
-    ctx.fillStyle = "#666666";
-    ctx.fillText("DATE & TIME", 40, y);
-    ctx.font = "16px Arial, sans-serif";
-    ctx.fillStyle = "#333333";
-    ctx.fillText(transaction.timestamp, 40, y + 22);
-    y += 60;
-
-    ctx.font = "bold 14px Arial, sans-serif";
-    ctx.fillStyle = "#666666";
-    ctx.fillText("TRANSACTION TYPE", 40, y);
-    ctx.font = "bold 18px Arial, sans-serif";
-    ctx.fillStyle = transaction.type === "deposit" ? "#27ae60" : 
-                    transaction.type === "withdraw" ? "#e74c3c" : 
-                    "#3498db";
-    ctx.fillText(transaction.type.toUpperCase(), 40, y + 24);
-    y += 70;
-
-    ctx.strokeStyle = "#e0e0e0";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#ff9ec1";
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(40, y);
-    ctx.lineTo(width - 40, y);
+    ctx.moveTo(100, rankY + 85);
+    ctx.lineTo(W - 100, rankY + 85);
     ctx.stroke();
-    y += 30;
+  });
 
-    ctx.font = "bold 14px Arial, sans-serif";
-    ctx.fillStyle = "#666666";
-    ctx.fillText("FROM ACCOUNT", 40, y);
-    ctx.font = "16px Arial, sans-serif";
-    ctx.fillStyle = "#333333";
-    ctx.fillText(senderData.name, 40, y + 22);
-    ctx.font = "14px Arial, monospace";
-    ctx.fillStyle = "#666666";
-    ctx.fillText(transaction.fromAccount || "N/A", 40, y + 42);
-    y += 80;
+  ctx.fillStyle = "#ff4081";
+  ctx.font = "italic 24px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("Updated: " + moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm"), W / 2, H - 40);
 
-    if (receiverData) {
-        ctx.font = "bold 14px Arial, sans-serif";
-        ctx.fillStyle = "#666666";
-        ctx.fillText("TO ACCOUNT", 40, y);
-        ctx.font = "16px Arial, sans-serif";
-        ctx.fillStyle = "#333333";
-        ctx.fillText(receiverData.name, 40, y + 22);
-        ctx.font = "14px Arial, monospace";
-        ctx.fillStyle = "#666666";
-        ctx.fillText(transaction.toAccount || "N/A", 40, y + 42);
-        y += 80;
-    }
-
-    ctx.strokeStyle = "#e0e0e0";
-    ctx.beginPath();
-    ctx.moveTo(40, y);
-    ctx.lineTo(width - 40, y);
-    ctx.stroke();
-    y += 40;
-
-    ctx.font = "bold 16px Arial, sans-serif";
-    ctx.fillStyle = "#666666";
-    ctx.fillText("AMOUNT", 40, y);
-    ctx.font = "bold 36px Arial, sans-serif";
-    ctx.fillStyle = transaction.type === "deposit" ? "#27ae60" : 
-                    transaction.type === "withdraw" ? "#e74c3c" : 
-                    "#1a1a2e";
-    const prefix = transaction.type === "deposit" ? "+" : "-";
-    ctx.fillText(`${prefix}${CURRENCY_SYMBOL}${formatMoney(transaction.amount)}`, 40, y + 45);
-    y += 90;
-
-    ctx.font = "bold 14px Arial, sans-serif";
-    ctx.fillStyle = "#666666";
-    ctx.fillText("NEW BALANCE", 40, y);
-    ctx.font = "bold 24px Arial, sans-serif";
-    ctx.fillStyle = "#1a1a2e";
-    ctx.fillText(`${CURRENCY_SYMBOL}${formatMoney(transaction.newBalance)}`, 40, y + 30);
-    y += 80;
-
-    ctx.fillStyle = "#f5f5f5";
-    ctx.fillRect(0, height - 100, width, 100);
-    ctx.font = "12px Arial, sans-serif";
-    ctx.fillStyle = "#999999";
-    ctx.textAlign = "center";
-    ctx.fillText("This is an official transaction receipt from " + BANK_NAME, width / 2, height - 60);
-    ctx.fillText("Keep this receipt for your records", width / 2, height - 40);
-    ctx.fillText("Customer Service: Available 24/7", width / 2, height - 20);
-
-    const buffer = canvas.toBuffer("image/png");
-    const outputPath = path.join(__dirname, "tmp", `receipt_${transaction.transactionId}.png`);
-    await fs.ensureDir(path.join(__dirname, "tmp"));
-    await fs.writeFile(outputPath, buffer);
-    return outputPath;
+  return canvas.toBuffer("image/png");
 }
 
-function generateTransactionId() {
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    return `TXN${timestamp}${random}`;
+async function renderTotalBalanceCard({ userName, userID, wallet, bank, loan, netTotal }) {
+  const W = 1100, H = 780;
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext("2d");
+
+  try {
+    const bg = await loadImage("https://i.postimg.cc/ryHfwpLJ/ezgif-22bfaf4827830f.jpg");
+    ctx.drawImage(bg, 0, 0, W, H);
+  } catch {
+    const grd = ctx.createLinearGradient(0, 0, W, H);
+    grd.addColorStop(0, "#f9e6f0");
+    grd.addColorStop(1, "#e6d9ff");
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  ctx.fillStyle = "rgba(255, 105, 180, 0.5)";
+  ctx.fillRect(0, 0, W, H);
+
+  const cardX = 70, cardY = 50, cardW = W - 140, cardH = H - 100, radius = 40;
+  ctx.save();
+  ctx.shadowColor = "rgba(219, 39, 119, 0.45)";
+  ctx.shadowBlur = 38;
+  ctx.shadowOffsetY = 14;
+  ctx.fillStyle = "#ffffff";
+  ctx.roundRect(cardX, cardY, cardW, cardH, radius);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.globalAlpha = 0.8;
+  ctx.fillStyle = "#ff85c0";
+  for (let i = 0; i < 8; i++) {
+    const x = cardX + 50 + Math.random() * (cardW - 100);
+    const y = cardY + 100 + Math.random() * (cardH - 200);
+    ctx.font = `${20 + Math.random() * 25}px Segoe UI Emoji`;
+    ctx.fillText("✧", x, y);
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = "#ff3f93";
+  ctx.fillRect(cardX, cardY + 20, cardW, 100);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 52px 'Comic Sans MS', cursive";
+  ctx.textAlign = "center";
+  ctx.fillText("Total Net Worth ♡", cardX + cardW / 2, cardY + 85);
+
+  ctx.font = "24px Arial";
+  ctx.fillText(userName, cardX + cardW / 2, cardY + 130);
+
+  const sx = cardX + 100, sy = cardY + 220, lh = 70;
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#111827";
+  ctx.font = "bold 36px Arial";
+
+  ctx.fillText("Wallet Balance", sx, sy);
+  ctx.fillText("Bank Balance", sx, sy + lh);
+  ctx.fillText("Outstanding Loan", sx, sy + lh * 2);
+  ctx.fillText("Net Total", sx, sy + lh * 3.5);
+
+  ctx.textAlign = "right";
+  ctx.font = "32px Arial";
+  ctx.fillStyle = "#374151";
+  ctx.fillText(`$${wallet.toLocaleString("en-US")}`, cardX + cardW - 100, sy);
+  ctx.fillText(`$${bank.toLocaleString("en-US")}`, cardX + cardW - 100, sy + lh);
+
+  ctx.fillStyle = loan > 0 ? "#dc2626" : "#059669";
+  ctx.fillText(`$${loan.toLocaleString("en-US")}`, cardX + cardW - 100, sy + lh * 2);
+
+  ctx.font = "bold 44px Arial";
+  ctx.fillStyle = netTotal >= 0 ? "#7c3aed" : "#b91c1c";
+  ctx.fillText(`$${netTotal.toLocaleString("en-US")}`, cardX + cardW - 100, sy + lh * 3.5);
+
+  ctx.beginPath();
+  ctx.arc(cardX + cardW - 140, cardY + cardH - 120, 48, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255, 64, 129, 0.2)";
+  ctx.fill();
+  ctx.strokeStyle = "#ff4081";
+  ctx.lineWidth = 5;
+  ctx.stroke();
+  ctx.fillStyle = "#ff4081";
+  ctx.font = "bold 24px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("SHIZUKA", cardX + cardW - 140, cardY + cardH - 110);
+  ctx.fillText("NET", cardX + cardW - 140, cardY + cardH - 80);
+
+  return canvas.toBuffer("image/png");
 }
 
-function ensureDataStructure(userData) {
-    if (!userData.data) userData.data = {};
-    if (!userData.data.bank) {
-        userData.data.bank = null;
-    }
-    if (userData.data.bank && userData.data.bank.accountNumber && !userData.data.bank.isRegistered) {
-        userData.data.bank.isRegistered = true;
-    }
-    return userData;
+async function renderDailyReceipt({ interest, bonus, total, bankBalance, userName, userID }) {
+  return renderTxnReceipt({
+    type: "Daily Reward",
+    amount: total,
+    bankBalance,
+    userName,
+    userID,
+    extra: "(Interest + Bonus)"
+  });
 }
 
-function isRegistered(userData) {
-    if (!userData.data || !userData.data.bank) return false;
-    if (userData.data.bank.isRegistered === true) return true;
-    if (userData.data.bank.accountNumber && userData.data.bank.transactions && userData.data.bank.transactions.length > 0) {
-        return true;
-    }
-    return false;
+async function renderLevelUpReceipt({ level, bankBalance, userName, userID }) {
+  return renderTxnReceipt({
+    type: "Level Up",
+    amount: level,
+    bankBalance,
+    userName,
+    userID,
+    extra: "Congratulations!"
+  });
 }
 
-function createBankAccount(userData) {
-    if (userData.data.bank && userData.data.bank.accountNumber) {
-        return userData;
-    }
-    userData.data.bank = {
-        isRegistered: true,
-        accountNumber: generateAccountNumber(),
-        balance: 0,
-        savings: 0,
-        transactions: [],
-        cards: [],
-        dailyWithdraw: { date: null, amount: 0 },
-        dailyTransfer: { date: null, amount: 0 },
-        createdAt: moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss"),
-        lastInterest: null,
-        totalDeposited: 0,
-        totalWithdrawn: 0,
-        totalTransferred: 0
-    };
-    return userData;
+async function renderTransferReceipt({ type, amount, targetName, bankBalance, userName, userID }) {
+  return renderTxnReceipt({
+    type,
+    amount,
+    bankBalance,
+    userName,
+    userID,
+    extra: type.includes("Sent") ? `to ${targetName}` : `from ${targetName}`
+  });
+}
+
+async function renderHistoryReceipt(transactions, userName, userID) {
+  const W = 1000, H = 800 + transactions.length * 45;
+  const canvas = createCanvas(W, H);
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#fff0f5";
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = "#ff3f93";
+  ctx.font = "bold 48px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("Transaction History ♡", W/2, 80);
+
+  ctx.font = "24px Arial";
+  ctx.fillText(userName, W/2, 130);
+
+  let y = 180;
+  transactions.forEach(t => {
+    ctx.fillStyle = "#4a148c";
+    ctx.font = "22px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText(`${t.date}  •  $${t.amount.toLocaleString()}  •  ${t.desc}`, 80, y);
+    y += 45;
+  });
+
+  return canvas.toBuffer("image/png");
 }
 
 module.exports = {
-    config: {
-        name: "bank",
-        aliases: ["atm", "banking"],
-        version: "2.0",
-        author: "Neoaz 🐦",
-        countDown: 5,
-        role: 0,
-        description: "Complete banking system with ATM cards, transfers, savings accounts",
-        category: "economy",
-        guide: `{pn} - View bank menu
-{pn} register - Register account
-{pn} balance - Check balance  
-{pn} deposit <amount> - Deposit money
-{pn} withdraw <amount> - Withdraw money
-{pn} transfer <@tag or UID> <amount> - Transfer money
-{pn} history - Transaction history
-{pn} card - View ATM card
-{pn} card apply <standard/gold/platinum> - Apply for card
-{pn} card activate - Activate card
-{pn} card block - Block card
-{pn} card pin <new PIN> - Change PIN
-{pn} savings deposit <amount> - Deposit to savings
-{pn} savings withdraw - Withdraw savings
-{pn} statement - Account statement`
-    },
-
-    langs: {
-        en: {
-            menu: `
-     🏦 ${BANK_NAME}     
-══════════════════════
- 📋 BANKING SERVICES:      
-                          
- 💰 deposit - Deposit     
- 💸 withdraw - Withdraw   
- 🔄 transfer - Transfer   
- 📊 balance - Balance     
- 📜 history - History     
- 💳 card - ATM Card       
- 🏧 savings - Savings     
- 📑 statement - Statement`,
-            notRegistered: "❌ You don't have a bank account!\nUse: bank register to sign up",
-            alreadyRegistered: "✅ You already have a bank account!",
-            registered: `🎉 REGISTRATION SUCCESSFUL!
-
-🏦 ${BANK_NAME}
-━━━━━━━━━━━━━━━━━
-📋 Account No: %1
-💰 Balance: ${CURRENCY_SYMBOL}0
-📅 Opened: %2
-━━━━━━━━━━━━━━━━━
-Welcome to ${BANK_NAME}!`,
-            balance: `💳 ACCOUNT INFORMATION
-
-🏦 ${BANK_NAME}
-━━━━━━━━━━━━━━━━━
-👤 Holder: %1
-📋 Account: %2
-💰 Balance: ${CURRENCY_SYMBOL}%3
-💎 Savings: ${CURRENCY_SYMBOL}%4
-━━━━━━━━━━━━━━━━━
-📊 Total Deposits: ${CURRENCY_SYMBOL}%5
-📊 Total Withdrawals: ${CURRENCY_SYMBOL}%6`,
-            depositSuccess: "✅ Deposit successful!",
-            withdrawSuccess: "✅ Withdrawal successful!",
-            transferSuccess: "✅ Transfer successful!",
-            invalidAmount: "❌ Invalid amount!",
-            insufficientBalance: "❌ Insufficient bank balance!",
-            insufficientWallet: "❌ Insufficient wallet balance!",
-            minDeposit: `❌ Minimum deposit is ${CURRENCY_SYMBOL}${MIN_DEPOSIT}`,
-            minWithdraw: `❌ Minimum withdrawal is ${CURRENCY_SYMBOL}${MIN_WITHDRAW}`,
-            minTransfer: `❌ Minimum transfer is ${CURRENCY_SYMBOL}${MIN_TRANSFER}`,
-            dailyLimitReached: "❌ You've reached today's transaction limit!",
-            noTransactions: "📭 No transactions yet!",
-            noCard: "❌ You don't have an ATM card!\nUse: bank card apply <type>",
-            cardApplied: "✅ Card application successful! Your PIN: %1",
-            cardActivated: "✅ Card has been activated!",
-            cardBlocked: "✅ Card has been blocked!",
-            pinChanged: "✅ PIN changed successfully!",
-            invalidPin: "❌ PIN must be 4 digits!",
-            savingsDeposited: "✅ Savings deposit successful!",
-            savingsWithdrawn: "✅ Savings withdrawal successful!",
-            noSavings: "❌ You have no savings!"
-        }
-    },
-
-    onStart: async function ({ args, message, event, usersData, getLang }) {
-        const { senderID } = event;
-        let userData = await usersData.get(senderID);
-        const action = args[0]?.toLowerCase();
-
-        if (!action) {
-            return message.reply(getLang("menu"));
-        }
-
-        switch (action) {
-            case "register": {
-                userData = ensureDataStructure(userData);
-                if (isRegistered(userData)) {
-                    return message.reply(getLang("alreadyRegistered"));
-                }
-                userData = createBankAccount(userData);
-                const transaction = {
-                    transactionId: generateTransactionId(),
-                    type: "account_opened",
-                    amount: 0,
-                    newBalance: 0,
-                    timestamp: moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss"),
-                    description: "Account opened"
-                };
-                userData.data.bank.transactions.push(transaction);
-                await usersData.set(senderID, { data: userData.data });
-                return message.reply(getLang("registered", userData.data.bank.accountNumber, userData.data.bank.createdAt));
-            }
-
-            case "balance":
-            case "bal": {
-                userData = ensureDataStructure(userData);
-                if (!isRegistered(userData)) {
-                    return message.reply(getLang("notRegistered"));
-                }
-                return message.reply(getLang("balance", 
-                    userData.name,
-                    userData.data.bank.accountNumber,
-                    formatMoney(userData.data.bank.balance),
-                    formatMoney(userData.data.bank.savings || 0),
-                    formatMoney(userData.data.bank.totalDeposited || 0),
-                    formatMoney(userData.data.bank.totalWithdrawn || 0)
-                ));
-            }
-
-            case "deposit":
-            case "dep": {
-                userData = ensureDataStructure(userData);
-                if (!isRegistered(userData)) {
-                    return message.reply(getLang("notRegistered"));
-                }
-                const amount = parseInt(args[1]);
-                if (isNaN(amount) || amount <= 0) {
-                    return message.reply(getLang("invalidAmount"));
-                }
-                if (amount < MIN_DEPOSIT) {
-                    return message.reply(getLang("minDeposit"));
-                }
-                if (userData.money < amount) {
-                    return message.reply(getLang("insufficientWallet"));
-                }
-
-                const transaction = {
-                    transactionId: generateTransactionId(),
-                    type: "deposit",
-                    amount: amount,
-                    fromAccount: "Wallet",
-                    newBalance: userData.data.bank.balance + amount,
-                    timestamp: moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss"),
-                    description: "Wallet to Bank deposit"
-                };
-
-                userData.data.bank.balance += amount;
-                userData.data.bank.totalDeposited = (userData.data.bank.totalDeposited || 0) + amount;
-                userData.data.bank.transactions.unshift(transaction);
-                if (userData.data.bank.transactions.length > 50) {
-                    userData.data.bank.transactions = userData.data.bank.transactions.slice(0, 50);
-                }
-
-                await usersData.set(senderID, {
-                    money: userData.money - amount,
-                    data: userData.data
-                });
-
-                const receiptPath = await createTransactionReceipt(transaction, userData);
-                return message.reply({
-                    body: `${getLang("depositSuccess")}
-
-💰 Amount: ${CURRENCY_SYMBOL}${formatMoney(amount)}
-💳 New Balance: ${CURRENCY_SYMBOL}${formatMoney(userData.data.bank.balance)}
-🔖 Transaction ID: ${transaction.transactionId}`,
-                    attachment: fs.createReadStream(receiptPath)
-                }, () => fs.unlinkSync(receiptPath));
-            }
-
-            case "withdraw":
-            case "wd": {
-                userData = ensureDataStructure(userData);
-                if (!isRegistered(userData)) {
-                    return message.reply(getLang("notRegistered"));
-                }
-                const amount = parseInt(args[1]);
-                if (isNaN(amount) || amount <= 0) {
-                    return message.reply(getLang("invalidAmount"));
-                }
-                if (amount < MIN_WITHDRAW) {
-                    return message.reply(getLang("minWithdraw"));
-                }
-                if (userData.data.bank.balance < amount) {
-                    return message.reply(getLang("insufficientBalance"));
-                }
-
-                const today = moment().tz("Asia/Dhaka").format("DD/MM/YYYY");
-                if (userData.data.bank.dailyWithdraw.date === today) {
-                    if (userData.data.bank.dailyWithdraw.amount + amount > DAILY_WITHDRAW_LIMIT) {
-                        return message.reply(`${getLang("dailyLimitReached")}\nRemaining: ${CURRENCY_SYMBOL}${formatMoney(DAILY_WITHDRAW_LIMIT - userData.data.bank.dailyWithdraw.amount)}`);
-                    }
-                    userData.data.bank.dailyWithdraw.amount += amount;
-                } else {
-                    userData.data.bank.dailyWithdraw = { date: today, amount: amount };
-                }
-
-                const transaction = {
-                    transactionId: generateTransactionId(),
-                    type: "withdraw",
-                    amount: amount,
-                    fromAccount: userData.data.bank.accountNumber,
-                    newBalance: userData.data.bank.balance - amount,
-                    timestamp: moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss"),
-                    description: "Bank to Wallet withdrawal"
-                };
-
-                userData.data.bank.balance -= amount;
-                userData.data.bank.totalWithdrawn = (userData.data.bank.totalWithdrawn || 0) + amount;
-                userData.data.bank.transactions.unshift(transaction);
-                if (userData.data.bank.transactions.length > 50) {
-                    userData.data.bank.transactions = userData.data.bank.transactions.slice(0, 50);
-                }
-
-                await usersData.set(senderID, {
-                    money: userData.money + amount,
-                    data: userData.data
-                });
-
-                const receiptPath = await createTransactionReceipt(transaction, userData);
-                return message.reply({
-                    body: `${getLang("withdrawSuccess")}
-
-💸 Amount: ${CURRENCY_SYMBOL}${formatMoney(amount)}
-💳 Bank Balance: ${CURRENCY_SYMBOL}${formatMoney(userData.data.bank.balance)}
-👛 Wallet Balance: ${CURRENCY_SYMBOL}${formatMoney(userData.money + amount)}
-🔖 Transaction ID: ${transaction.transactionId}`,
-                    attachment: fs.createReadStream(receiptPath)
-                }, () => fs.unlinkSync(receiptPath));
-            }
-
-            case "transfer":
-            case "tf": {
-                userData = ensureDataStructure(userData);
-                if (!isRegistered(userData)) {
-                    return message.reply(getLang("notRegistered"));
-                }
-
-                let targetID;
-                let amount;
-
-                if (Object.keys(event.mentions).length > 0) {
-                    targetID = Object.keys(event.mentions)[0];
-                    amount = parseInt(args[2]) || parseInt(args[1]);
-                } else {
-                    targetID = args[1];
-                    amount = parseInt(args[2]);
-                }
-
-                if (!targetID || isNaN(amount) || amount <= 0) {
-                    return message.reply("Usage: bank transfer <@user or UID> <amount>");
-                }
-                if (amount < MIN_TRANSFER) {
-                    return message.reply(getLang("minTransfer"));
-                }
-                if (userData.data.bank.balance < amount) {
-                    return message.reply(getLang("insufficientBalance"));
-                }
-                if (targetID == senderID) {
-                    return message.reply("❌ You cannot transfer to yourself!");
-                }
-
-                const today = moment().tz("Asia/Dhaka").format("DD/MM/YYYY");
-                if (userData.data.bank.dailyTransfer.date === today) {
-                    if (userData.data.bank.dailyTransfer.amount + amount > DAILY_TRANSFER_LIMIT) {
-                        return message.reply(`${getLang("dailyLimitReached")}\nRemaining: ${CURRENCY_SYMBOL}${formatMoney(DAILY_TRANSFER_LIMIT - userData.data.bank.dailyTransfer.amount)}`);
-                    }
-                    userData.data.bank.dailyTransfer.amount += amount;
-                } else {
-                    userData.data.bank.dailyTransfer = { date: today, amount: amount };
-                }
-
-                let targetData = await usersData.get(targetID);
-                targetData = ensureDataStructure(targetData);
-                if (!isRegistered(targetData)) {
-                    return message.reply("❌ Recipient doesn't have a bank account!");
-                }
-
-                const transaction = {
-                    transactionId: generateTransactionId(),
-                    type: "transfer",
-                    amount: amount,
-                    fromAccount: userData.data.bank.accountNumber,
-                    toAccount: targetData.data.bank.accountNumber,
-                    newBalance: userData.data.bank.balance - amount,
-                    timestamp: moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss"),
-                    description: `Transfer to ${targetData.name}`
-                };
-
-                const receiverTransaction = {
-                    transactionId: transaction.transactionId,
-                    type: "received",
-                    amount: amount,
-                    fromAccount: userData.data.bank.accountNumber,
-                    toAccount: targetData.data.bank.accountNumber,
-                    newBalance: targetData.data.bank.balance + amount,
-                    timestamp: transaction.timestamp,
-                    description: `Received from ${userData.name}`
-                };
-
-                userData.data.bank.balance -= amount;
-                userData.data.bank.totalTransferred = (userData.data.bank.totalTransferred || 0) + amount;
-                userData.data.bank.transactions.unshift(transaction);
-
-                targetData.data.bank.balance += amount;
-                targetData.data.bank.transactions.unshift(receiverTransaction);
-
-                if (userData.data.bank.transactions.length > 50) {
-                    userData.data.bank.transactions = userData.data.bank.transactions.slice(0, 50);
-                }
-                if (targetData.data.bank.transactions.length > 50) {
-                    targetData.data.bank.transactions = targetData.data.bank.transactions.slice(0, 50);
-                }
-
-                await usersData.set(senderID, { data: userData.data });
-                await usersData.set(targetID, { data: targetData.data });
-
-                const receiptPath = await createTransactionReceipt(transaction, userData, targetData);
-                return message.reply({
-                    body: `${getLang("transferSuccess")}
-
-🔄 TRANSFER DETAILS
-━━━━━━━━━━━━━━━━━
-📤 From: ${userData.name}
-📥 To: ${targetData.name}
-💰 Amount: ${CURRENCY_SYMBOL}${formatMoney(amount)}
-💳 Your Balance: ${CURRENCY_SYMBOL}${formatMoney(userData.data.bank.balance)}
-🔖 ID: ${transaction.transactionId}`,
-                    attachment: fs.createReadStream(receiptPath)
-                }, () => fs.unlinkSync(receiptPath));
-            }
-
-            case "history":
-            case "his": {
-                userData = ensureDataStructure(userData);
-                if (!isRegistered(userData)) {
-                    return message.reply(getLang("notRegistered"));
-                }
-                if (userData.data.bank.transactions.length === 0) {
-                    return message.reply(getLang("noTransactions"));
-                }
-
-                const transactions = userData.data.bank.transactions.slice(0, 10);
-                let historyMsg = `📜 TRANSACTION HISTORY\n━━━━━━━━━━━━━━━━━\n`;
-                
-                transactions.forEach((tx, i) => {
-                    const icon = tx.type === "deposit" ? "💰" : 
-                                tx.type === "withdraw" ? "💸" : 
-                                tx.type === "transfer" ? "📤" : 
-                                tx.type === "received" ? "📥" : "📋";
-                    const sign = ["deposit", "received"].includes(tx.type) ? "+" : "-";
-                    historyMsg += `${i + 1}. ${icon} ${tx.type.toUpperCase()}\n`;
-                    historyMsg += `   ${sign}${CURRENCY_SYMBOL}${formatMoney(tx.amount)} | ${tx.timestamp.split(" ")[0]}\n`;
-                });
-
-                return message.reply(historyMsg);
-            }
-
-            case "card": {
-                userData = ensureDataStructure(userData);
-                if (!isRegistered(userData)) {
-                    return message.reply(getLang("notRegistered"));
-                }
-
-                const cardAction = args[1]?.toLowerCase();
-
-                if (!cardAction) {
-                    if (!userData.data.bank.cards || userData.data.bank.cards.length === 0) {
-                        return message.reply(getLang("noCard"));
-                    }
-                    const card = userData.data.bank.cards[0];
-                    const cardPath = await createBankCard(card, userData);
-                    return message.reply({
-                        body: `💳 YOUR ATM CARD
-━━━━━━━━━━━━━━━━━
-📋 Card No: ${formatCardNumber(card.cardNumber)}
-📅 Expiry: ${card.expiryDate}
-🔒 Status: ${card.isActive ? "Active ✅" : "Blocked ❌"}
-💎 Type: ${card.cardType.toUpperCase()}
-━━━━━━━━━━━━━━━━━
-⚠️ CVV and PIN shown on card back`,
-                        attachment: fs.createReadStream(cardPath)
-                    }, () => fs.unlinkSync(cardPath));
-                }
-
-                switch (cardAction) {
-                    case "apply": {
-                        if (userData.data.bank.cards && userData.data.bank.cards.length > 0) {
-                            return message.reply("❌ You already have a card!");
-                        }
-                        const cardType = args[2]?.toLowerCase() || "standard";
-                        if (!["standard", "gold", "platinum"].includes(cardType)) {
-                            return message.reply("❌ Card types: standard, gold, platinum");
-                        }
-
-                        const minBalance = cardType === "platinum" ? 50000 : cardType === "gold" ? 10000 : 0;
-                        if (userData.data.bank.balance < minBalance) {
-                            return message.reply(`❌ Minimum balance for ${cardType} card: ${CURRENCY_SYMBOL}${formatMoney(minBalance)}`);
-                        }
-
-                        const pin = generatePIN();
-                        const newCard = {
-                            cardNumber: generateCardNumber(),
-                            cvv: generateCVV(),
-                            pin: hashPIN(pin),
-                            expiryDate: getExpiryDate(),
-                            cardType: cardType,
-                            isActive: true,
-                            issuedAt: moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss"),
-                            accountNumber: userData.data.bank.accountNumber
-                        };
-
-                        userData.data.bank.cards = [newCard];
-                        await usersData.set(senderID, { data: userData.data });
-
-                        const cardPath = await createBankCard(newCard, userData);
-                        return message.reply({
-                            body: `${getLang("cardApplied", pin)}
-
-💳 NEW CARD ISSUED
-━━━━━━━━━━━━━━━━━
-📋 Card No: ${formatCardNumber(newCard.cardNumber)}
-📅 Expiry: ${newCard.expiryDate}
-🔐 CVV: ${newCard.cvv}
-🔑 PIN: ${pin}
-💎 Type: ${cardType.toUpperCase()}
-━━━━━━━━━━━━━━━━━
-⚠️ Keep your PIN safe! Don't share it.`,
-                            attachment: fs.createReadStream(cardPath)
-                        }, () => fs.unlinkSync(cardPath));
-                    }
-
-                    case "activate": {
-                        if (!userData.data.bank.cards || userData.data.bank.cards.length === 0) {
-                            return message.reply(getLang("noCard"));
-                        }
-                        userData.data.bank.cards[0].isActive = true;
-                        await usersData.set(senderID, { data: userData.data });
-                        return message.reply(getLang("cardActivated"));
-                    }
-
-                    case "block": {
-                        if (!userData.data.bank.cards || userData.data.bank.cards.length === 0) {
-                            return message.reply(getLang("noCard"));
-                        }
-                        userData.data.bank.cards[0].isActive = false;
-                        await usersData.set(senderID, { data: userData.data });
-                        return message.reply(getLang("cardBlocked"));
-                    }
-
-                    case "pin": {
-                        if (!userData.data.bank.cards || userData.data.bank.cards.length === 0) {
-                            return message.reply(getLang("noCard"));
-                        }
-                        const newPin = args[2];
-                        if (!newPin || !/^\d{4}$/.test(newPin)) {
-                            return message.reply(getLang("invalidPin"));
-                        }
-                        userData.data.bank.cards[0].pin = hashPIN(newPin);
-                        await usersData.set(senderID, { data: userData.data });
-                        return message.reply(getLang("pinChanged"));
-                    }
-
-                    default:
-                        return message.reply(`💳 Card Commands:
-• card - View your card
-• card apply <type> - Apply for card
-• card activate - Activate card
-• card block - Block card  
-• card pin <4 digits> - Change PIN
-
-Card Types: standard, gold, platinum`);
-                }
-            }
-
-            case "savings":
-            case "save": {
-                userData = ensureDataStructure(userData);
-                if (!isRegistered(userData)) {
-                    return message.reply(getLang("notRegistered"));
-                }
-
-                const savingsAction = args[1]?.toLowerCase();
-
-                if (!savingsAction) {
-                    return message.reply(`🏧 SAVINGS ACCOUNT
-━━━━━━━━━━━━━━━━━
-💎 Balance: ${CURRENCY_SYMBOL}${formatMoney(userData.data.bank.savings || 0)}
-📈 Interest Rate: ${INTEREST_RATE * 100}% daily
-━━━━━━━━━━━━━━━━━
-Commands:
-• savings deposit <amount>
-• savings withdraw`);
-                }
-
-                switch (savingsAction) {
-                    case "deposit":
-                    case "dep": {
-                        const amount = parseInt(args[2]);
-                        if (isNaN(amount) || amount <= 0) {
-                            return message.reply(getLang("invalidAmount"));
-                        }
-                        if (userData.data.bank.balance < amount) {
-                            return message.reply(getLang("insufficientBalance"));
-                        }
-
-                        userData.data.bank.balance -= amount;
-                        userData.data.bank.savings = (userData.data.bank.savings || 0) + amount;
-                        userData.data.bank.lastInterest = moment().tz("Asia/Dhaka").format("DD/MM/YYYY");
-
-                        const transaction = {
-                            transactionId: generateTransactionId(),
-                            type: "savings_deposit",
-                            amount: amount,
-                            newBalance: userData.data.bank.balance,
-                            timestamp: moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss"),
-                            description: "Transfer to Savings"
-                        };
-                        userData.data.bank.transactions.unshift(transaction);
-
-                        await usersData.set(senderID, { data: userData.data });
-                        return message.reply(`${getLang("savingsDeposited")}
-
-💎 Savings Balance: ${CURRENCY_SYMBOL}${formatMoney(userData.data.bank.savings)}
-💰 Bank Balance: ${CURRENCY_SYMBOL}${formatMoney(userData.data.bank.balance)}`);
-                    }
-
-                    case "withdraw":
-                    case "wd": {
-                        if (!userData.data.bank.savings || userData.data.bank.savings <= 0) {
-                            return message.reply(getLang("noSavings"));
-                        }
-
-                        const lastInterest = userData.data.bank.lastInterest;
-                        let interest = 0;
-                        if (lastInterest) {
-                            const days = moment().diff(moment(lastInterest, "DD/MM/YYYY"), "days");
-                            interest = Math.floor(userData.data.bank.savings * INTEREST_RATE * days);
-                        }
-
-                        const total = userData.data.bank.savings + interest;
-                        userData.data.bank.balance += total;
-                        userData.data.bank.savings = 0;
-                        userData.data.bank.lastInterest = null;
-
-                        const transaction = {
-                            transactionId: generateTransactionId(),
-                            type: "savings_withdraw",
-                            amount: total,
-                            newBalance: userData.data.bank.balance,
-                            timestamp: moment().tz("Asia/Dhaka").format("DD/MM/YYYY HH:mm:ss"),
-                            description: `Savings withdrawal + ${CURRENCY_SYMBOL}${formatMoney(interest)} interest`
-                        };
-                        userData.data.bank.transactions.unshift(transaction);
-
-                        await usersData.set(senderID, { data: userData.data });
-                        return message.reply(`${getLang("savingsWithdrawn")}
-
-💎 Withdrawn: ${CURRENCY_SYMBOL}${formatMoney(userData.data.bank.savings)}
-📈 Interest Earned: ${CURRENCY_SYMBOL}${formatMoney(interest)}
-💰 Total Added: ${CURRENCY_SYMBOL}${formatMoney(total)}
-💳 Bank Balance: ${CURRENCY_SYMBOL}${formatMoney(userData.data.bank.balance)}`);
-                    }
-
-                    default:
-                        return message.reply(`🏧 Savings Commands:
-• savings deposit <amount>
-• savings withdraw`);
-                }
-            }
-
-            case "statement":
-            case "stmt": {
-                userData = ensureDataStructure(userData);
-                if (!isRegistered(userData)) {
-                    return message.reply(getLang("notRegistered"));
-                }
-
-                let statementMsg = `📑 ACCOUNT STATEMENT
-━━━━━━━━━━━━━━━━━━━━━
-🏦 ${BANK_NAME}
-👤 ${userData.name}
-📋 ${userData.data.bank.accountNumber}
-━━━━━━━━━━━━━━━━━━━━━
-
-💰 Current Balance: ${CURRENCY_SYMBOL}${formatMoney(userData.data.bank.balance)}
-💎 Savings: ${CURRENCY_SYMBOL}${formatMoney(userData.data.bank.savings || 0)}
-
-📊 STATISTICS
-━━━━━━━━━━━━━━━━━━━━━
-📥 Total Deposited: ${CURRENCY_SYMBOL}${formatMoney(userData.data.bank.totalDeposited || 0)}
-📤 Total Withdrawn: ${CURRENCY_SYMBOL}${formatMoney(userData.data.bank.totalWithdrawn || 0)}
-🔄 Total Transferred: ${CURRENCY_SYMBOL}${formatMoney(userData.data.bank.totalTransferred || 0)}
-
-💳 CARDS: ${userData.data.bank.cards?.length || 0}
-📋 Transactions: ${userData.data.bank.transactions.length}
-
-📅 Account Opened: ${userData.data.bank.createdAt}
-━━━━━━━━━━━━━━━━━━━━━
-Thank you for banking with us!`;
-
-                return message.reply(statementMsg);
-            }
-
-            default:
-                return message.reply(getLang("menu"));
-        }
+  config: {
+    name: "bank",
+    aliases: ["b", "sb", "rin", "loan"],
+    version: "3.2",
+    author: "S1FU",
+    countDown: 5,
+    role: 0,
+    description: { en: "Shizuka Bank • Full Kawaii Economy System" },
+    category: "BANK",
+    guide: {
+      en: `bank deposit <amount>
+bank withdraw <amount>
+bank loan <amount>
+bank repay <amount>
+bank daily
+bank levelup
+bank balance
+bank total / net
+bank top / leaderboard
+bank history
+bank transfer @tag <amount>`
     }
+  },
+
+  langs: {
+    en: {
+      depositSuccess: "✧ Deposited $%1! ♡",
+      withdrawSuccess: "✧ Withdrew $%1! ♡",
+      loanSuccess: "💸 Loan approved! +$%1 in wallet",
+      repaySuccess: "♡ Repaid $%1! Remaining: $%2",
+      transferSuccess: "💌 Sent $%1 to %2!",
+      transferReceived: "💕 Received $%1 from %2!",
+      noLoan: "No active loan~",
+      maxLoanLimit: "Max loan: $%1 (Lv %2)",
+      insufficientForRepay: "Not enough in wallet!",
+      dailyPenaltyApplied: "⚠️ $5,000 loan penalty deducted!",
+      dailyClaimed: "✧ Interest: $%1  |  Bonus: $%2  →  Total: $%3 ♡",
+      alreadyClaimed: "Already claimed today~",
+      levelUpSuccess: "୨୧ Level up to %1! ♡",
+      notEnoughForLevel: "Need $%1 more~",
+      levelMax: "Max level reached~ ♡",
+      noTransactions: "No history yet~ ♡",
+      invalidAmount: "Invalid amount!",
+      insufficientFunds: "Not enough money!",
+      userNotFound: "User not found!",
+      cannotTransferSelf: "Cannot transfer to yourself!"
+    }
+  },
+
+  onStart: async function ({ message, args, event, usersData, getLang, api }) {
+    if (this.config.author !== "S1FU") {
+      return message.reply("⛔ Command locked! Author must be S1FU");
+    }
+
+    const { senderID, mentions } = event;
+    let economy = await usersData.get(senderID, "data.economy") || {
+      bankBalance: 0,
+      loanAmount: 0,
+      lastLoanPenaltyDate: "",
+      lastDaily: "",
+      transactions: [],
+      bankLevel: 1
+    };
+
+    let userMoney = await usersData.get(senderID, "money") || 0;
+    const action = args[0]?.toLowerCase() || "";
+
+    const today = moment().tz("Asia/Dhaka").format("YYYY-MM-DD");
+    const interestRate = 0.008 + (economy.bankLevel - 1) * 0.004;
+    const maxLoan = economy.bankLevel * 75000;
+
+    // Daily loan penalty
+    if (economy.loanAmount > 0 && economy.lastLoanPenaltyDate !== today) {
+      const penalty = Math.min(5000, userMoney);
+      if (penalty > 0) {
+        userMoney -= penalty;
+        await usersData.set(senderID, { money: userMoney });
+        economy.transactions.unshift({
+          type: "loan_penalty",
+          amount: penalty,
+          date: moment().tz("Asia/Dhaka").format("DD/MM/YY • HH:mm"),
+          desc: "Daily Loan Penalty"
+        });
+        if (economy.transactions.length > 25) economy.transactions.pop();
+      }
+      economy.lastLoanPenaltyDate = today;
+      await usersData.set(senderID, economy, "data.economy");
+      if (penalty > 0) message.reply(getLang("dailyPenaltyApplied"));
+    }
+
+    switch (action) {
+      case "deposit":
+      case "d": {
+        const amt = parseInt(args[1]);
+        if (!amt || amt <= 0) return message.reply(getLang("invalidAmount"));
+        if (amt > userMoney) return message.reply(getLang("insufficientFunds"));
+
+        userMoney -= amt;
+        economy.bankBalance += amt;
+        await usersData.set(senderID, { money: userMoney });
+        await usersData.set(senderID, economy, "data.economy");
+
+        economy.transactions.unshift({
+          type: "deposit",
+          amount: amt,
+          date: moment().tz("Asia/Dhaka").format("DD/MM/YY • HH:mm"),
+          desc: "Deposit"
+        });
+        if (economy.transactions.length > 25) economy.transactions.pop();
+        await usersData.set(senderID, economy.transactions, "data.economy.transactions");
+
+        const name = await usersData.getName(senderID) || senderID;
+        const buf = await renderTxnReceipt({ type: "Deposit", amount: amt, bankBalance: economy.bankBalance, userName: name, userID: senderID });
+
+        const file = `${__dirname}/cache/deposit_${senderID}.png`;
+        await fs.writeFile(file, buf);
+        await message.reply({ body: getLang("depositSuccess", amt.toLocaleString()), attachment: fs.createReadStream(file) });
+        fs.unlink(file, () => {});
+        break;
+      }
+
+      case "withdraw":
+      case "w": {
+        const amt = parseInt(args[1]);
+        if (!amt || amt <= 0) return message.reply(getLang("invalidAmount"));
+        if (amt > economy.bankBalance) return message.reply("Not enough in bank!");
+
+        userMoney += amt;
+        economy.bankBalance -= amt;
+        await usersData.set(senderID, { money: userMoney });
+        await usersData.set(senderID, economy, "data.economy");
+
+        economy.transactions.unshift({
+          type: "withdraw",
+          amount: amt,
+          date: moment().tz("Asia/Dhaka").format("DD/MM/YY • HH:mm"),
+          desc: "Withdrawal"
+        });
+        if (economy.transactions.length > 25) economy.transactions.pop();
+        await usersData.set(senderID, economy.transactions, "data.economy.transactions");
+
+        const name = await usersData.getName(senderID) || senderID;
+        const buf = await renderTxnReceipt({ type: "Withdrawal", amount: amt, bankBalance: economy.bankBalance, userName: name, userID: senderID });
+
+        const file = `${__dirname}/cache/withdraw_${senderID}.png`;
+        await fs.writeFile(file, buf);
+        await message.reply({ body: getLang("withdrawSuccess", amt.toLocaleString()), attachment: fs.createReadStream(file) });
+        fs.unlink(file, () => {});
+        break;
+      }
+
+      case "loan":
+      case "l":
+      case "rin": {
+        const amt = parseInt(args[1]);
+        if (!amt || amt <= 0) return message.reply(getLang("invalidAmount"));
+
+        if ((economy.loanAmount || 0) + amt > maxLoan) {
+          return message.reply(getLang("maxLoanLimit", maxLoan.toLocaleString(), economy.bankLevel));
+        }
+
+        userMoney += amt;
+        economy.loanAmount = (economy.loanAmount || 0) + amt;
+        await usersData.set(senderID, { money: userMoney });
+        await usersData.set(senderID, economy, "data.economy");
+
+        economy.transactions.unshift({
+          type: "loan_taken",
+          amount: amt,
+          date: moment().tz("Asia/Dhaka").format("DD/MM/YY • HH:mm"),
+          desc: "Loan Taken"
+        });
+        if (economy.transactions.length > 25) economy.transactions.pop();
+        await usersData.set(senderID, economy.transactions, "data.economy.transactions");
+
+        const name = await usersData.getName(senderID) || senderID;
+        const buf = await renderLoanReceipt({ type: "Loan Taken", amount: amt, remainingLoan: economy.loanAmount, userName: name, userID: senderID });
+
+        const file = `${__dirname}/cache/loan_${senderID}.png`;
+        await fs.writeFile(file, buf);
+        await message.reply({ body: getLang("loanSuccess", amt.toLocaleString()), attachment: fs.createReadStream(file) });
+        fs.unlink(file, () => {});
+        break;
+      }
+
+      case "repay":
+      case "r":
+      case "porishod": {
+        let amt = parseInt(args[1]);
+        if (!amt || amt <= 0) return message.reply(getLang("invalidAmount"));
+
+        const currentLoan = economy.loanAmount || 0;
+        if (currentLoan === 0) return message.reply(getLang("noLoan"));
+        if (amt > currentLoan) amt = currentLoan;
+        if (amt > userMoney) return message.reply(getLang("insufficientForRepay"));
+
+        userMoney -= amt;
+        economy.loanAmount -= amt;
+        await usersData.set(senderID, { money: userMoney });
+        await usersData.set(senderID, economy, "data.economy");
+
+        economy.transactions.unshift({
+          type: "loan_repaid",
+          amount: amt,
+          date: moment().tz("Asia/Dhaka").format("DD/MM/YY • HH:mm"),
+          desc: "Loan Repaid"
+        });
+        if (economy.transactions.length > 25) economy.transactions.pop();
+        await usersData.set(senderID, economy.transactions, "data.economy.transactions");
+
+        const name = await usersData.getName(senderID) || senderID;
+        const buf = await renderLoanReceipt({ type: "Loan Repaid", amount: amt, remainingLoan: economy.loanAmount, userName: name, userID: senderID });
+
+        const file = `${__dirname}/cache/repay_${senderID}.png`;
+        await fs.writeFile(file, buf);
+        await message.reply({ body: getLang("repaySuccess", amt.toLocaleString(), economy.loanAmount.toLocaleString()), attachment: fs.createReadStream(file) });
+        fs.unlink(file, () => {});
+        break;
+      }
+
+      case "daily": {
+        if (economy.lastDaily === today) return message.reply(getLang("alreadyClaimed"));
+
+        const interest = Math.floor(economy.bankBalance * interestRate);
+        const bonus = 100 + economy.bankLevel * 60;
+        const total = interest + bonus;
+
+        economy.bankBalance += total;
+        economy.lastDaily = today;
+        await usersData.set(senderID, economy, "data.economy");
+
+        economy.transactions.unshift({
+          type: "daily_reward",
+          amount: total,
+          date: moment().tz("Asia/Dhaka").format("DD/MM/YY • HH:mm"),
+          desc: "Daily Reward"
+        });
+        if (economy.transactions.length > 25) economy.transactions.pop();
+        await usersData.set(senderID, economy.transactions, "data.economy.transactions");
+
+        const name = await usersData.getName(senderID) || senderID;
+        const buf = await renderDailyReceipt({ interest, bonus, total, bankBalance: economy.bankBalance, userName: name, userID: senderID });
+
+        const file = `${__dirname}/cache/daily_${senderID}.png`;
+        await fs.writeFile(file, buf);
+        await message.reply({ body: getLang("dailyClaimed", interest.toLocaleString(), bonus.toLocaleString(), total.toLocaleString()), attachment: fs.createReadStream(file) });
+        fs.unlink(file, () => {});
+        break;
+      }
+
+      case "levelup": {
+        const cost = economy.bankLevel * 25000;
+        if (economy.bankBalance < cost) return message.reply(getLang("notEnoughForLevel", (cost - economy.bankBalance).toLocaleString()));
+        if (economy.bankLevel >= 10) return message.reply(getLang("levelMax"));
+
+        economy.bankBalance -= cost;
+        economy.bankLevel += 1;
+        await usersData.set(senderID, economy, "data.economy");
+
+        const name = await usersData.getName(senderID) || senderID;
+        const buf = await renderLevelUpReceipt({ level: economy.bankLevel, bankBalance: economy.bankBalance, userName: name, userID: senderID });
+
+        const file = `${__dirname}/cache/levelup_${senderID}.png`;
+        await fs.writeFile(file, buf);
+        await message.reply({ body: getLang("levelUpSuccess", economy.bankLevel), attachment: fs.createReadStream(file) });
+        fs.unlink(file, () => {});
+        break;
+      }
+
+      case "transfer":
+      case "t": {
+        const amt = parseInt(args[args.length - 1]);
+        if (!amt || amt <= 0) return message.reply(getLang("invalidAmount"));
+
+        const targetID = Object.keys(mentions)[0];
+        if (!targetID || targetID === senderID) return message.reply(getLang("cannotTransferSelf"));
+        if (amt > userMoney) return message.reply(getLang("insufficientFunds"));
+
+        const targetData = await usersData.get(targetID);
+        if (!targetData) return message.reply(getLang("userNotFound"));
+
+        userMoney -= amt;
+        targetData.money = (targetData.money || 0) + amt;
+
+        await usersData.set(senderID, { money: userMoney });
+        await usersData.set(targetID, { money: targetData.money });
+
+        const targetName = await usersData.getName(targetID) || targetID;
+        const senderName = await usersData.getName(senderID) || senderID;
+
+        economy.transactions.unshift({
+          type: "transfer_sent",
+          amount: amt,
+          date: moment().tz("Asia/Dhaka").format("DD/MM/YY • HH:mm"),
+          desc: `Sent to ${targetName}`
+        });
+        if (economy.transactions.length > 25) economy.transactions.pop();
+        await usersData.set(senderID, economy.transactions, "data.economy.transactions");
+
+        const buf = await renderTransferReceipt({
+          type: "Transfer Sent",
+          amount: amt,
+          targetName,
+          bankBalance: economy.bankBalance,
+          userName: senderName,
+          userID: senderID
+        });
+
+        const file = `${__dirname}/cache/transfer_${senderID}.png`;
+        await fs.writeFile(file, buf);
+        await message.reply({
+          body: getLang("transferSuccess", amt.toLocaleString(), targetName),
+          attachment: fs.createReadStream(file)
+        });
+        fs.unlink(file, () => {});
+
+        break;
+      }
+
+      case "balance":
+      case "b": {
+        const estimated = Math.floor(economy.bankBalance * interestRate);
+        const name = await usersData.getName(senderID) || senderID;
+
+        message.reply(
+          `✿ Shizuka Bank ✿\n\n` +
+          `Hi ${name} ♡\n` +
+          `Wallet ⋆ $${userMoney.toLocaleString()}\n` +
+          `Bank   ⋆ $${economy.bankBalance.toLocaleString()} (Lv.${economy.bankLevel})\n` +
+          `Daily Interest ⋆ ~$${estimated.toLocaleString()} (${(interestRate * 100).toFixed(2)}%)\n` +
+          (economy.loanAmount > 0 ? `Loan   ⋆ $${economy.loanAmount.toLocaleString()} ⚠️\n` : "") +
+          `Max Loan ⋆ $${maxLoan.toLocaleString()}`
+        );
+        break;
+      }
+
+      case "total":
+      case "net":
+      case "allbalance": {
+        const wallet = userMoney;
+        const bank = economy.bankBalance || 0;
+        const loan = economy.loanAmount || 0;
+        const net = wallet + bank - loan;
+        const estimated = Math.floor(bank * interestRate);
+
+        const name = await usersData.getName(senderID) || senderID;
+        const buf = await renderTotalBalanceCard({
+          userName: name,
+          userID: senderID,
+          wallet,
+          bank,
+          loan,
+          netTotal: net
+        });
+
+        const file = `${__dirname}/cache/total_${senderID}.png`;
+        await fs.writeFile(file, buf);
+
+        await message.reply({
+          body: `Net Worth: $${net.toLocaleString()} ${net >= 0 ? "♡" : "⚠️"}\nDaily interest preview: ~$${estimated.toLocaleString()} (${(interestRate * 100).toFixed(2)}%)`,
+          attachment: fs.createReadStream(file)
+        });
+        fs.unlink(file, () => {});
+        break;
+      }
+
+      case "top":
+      case "leaderboard":
+      case "rich":
+      case "top10": {
+        const allData = await usersData.getAll();
+        const richList = [];
+
+        for (const [uid, data] of Object.entries(allData)) {
+          const eco = data.data?.economy || {};
+          const bal = eco.bankBalance || 0;
+          if (bal > 0) {
+            const name = await usersData.getName(uid) || uid;
+            richList.push({ userID: uid, name, bankBalance: bal });
+          }
+        }
+
+        richList.sort((a, b) => b.bankBalance - a.bankBalance);
+        const top10 = richList.slice(0, 10);
+
+        if (top10.length === 0) return message.reply("No one has bank money yet~ ♡");
+
+        const buf = await renderBankTopLeaderboard(top10);
+
+        const file = `${__dirname}/cache/top_${Date.now()}.png`;
+        await fs.writeFile(file, buf);
+        await message.reply({
+          body: "✦ Richest Bank Members ✦",
+          attachment: fs.createReadStream(file)
+        });
+        fs.unlink(file, () => {});
+        break;
+      }
+
+      case "history":
+      case "h": {
+        if (!economy.transactions?.length) return message.reply(getLang("noTransactions"));
+
+        const name = await usersData.getName(senderID) || senderID;
+        const buf = await renderHistoryReceipt(
+          economy.transactions.slice(0, 15),
+          name,
+          senderID
+        );
+
+        const file = `${__dirname}/cache/history_${senderID}.png`;
+        await fs.writeFile(file, buf);
+        await message.reply({
+          body: "✦ Your Transaction History ✦",
+          attachment: fs.createReadStream(file)
+        });
+        fs.unlink(file, () => {});
+        break;
+      }
+
+      default: {
+        const name = await usersData.getName(senderID) || "cutie";
+        const loan = economy.loanAmount || 0;
+        const estimated = Math.floor(economy.bankBalance * interestRate);
+
+        message.reply(
+          `✿ Shizuka Bank ✿\n\n` +
+          `Hi ${name} ♡\n` +
+          `Wallet ⋆ $${userMoney.toLocaleString()}\n` +
+          `Bank   ⋆ $${economy.bankBalance.toLocaleString()} (Lv.${economy.bankLevel})\n` +
+          `Daily Interest ⋆ ~$${estimated.toLocaleString()} (${(interestRate * 100).toFixed(2)}%)\n` +
+          (loan > 0 ? `Loan   ⋆ $${loan.toLocaleString()} ⚠️\n` : "") +
+          `Max Loan ⋆ $${maxLoan.toLocaleString()}\n\n` +
+          `Commands:\n` +
+          `→ deposit / withdraw\n` +
+          `→ loan / repay\n` +
+          `→ daily / levelup\n` +
+          `→ balance / total / top / history\n` +
+          `→ transfer @tag <amount>`
+        );
+        break;
+      }
+    }
+  }
 };

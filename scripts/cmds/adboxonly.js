@@ -2,37 +2,35 @@ module.exports = {
 	config: {
 		name: "onlyadminbox",
 		aliases: ["onlyadbox", "adboxonly", "adminboxonly"],
-		version: "1.3",
-		author: "NTKhang",
+		version: "1.5",
+		author: "S1FU",
 		countDown: 5,
 		role: 1,
 		description: {
-			vi: "bật/tắt chế độ chỉ quản trị của viên nhóm mới có thể sử dụng bot",
-			en: "turn on/off only admin box can use bot"
+			vi: "Quản lý quyền hạn sử dụng Bot trong nhóm",
+			en: "Manage Bot usage permissions in the group"
 		},
-		category: "box chat",
+		category: "Hệ Thống",
 		guide: {
-			vi: "   {pn} [on | off]: bật/tắt chế độ chỉ quản trị viên nhóm mới có thể sử dụng bot"
-				+ "\n   {pn} noti [on | off]: bật/tắt thông báo khi người dùng không phải là quản trị viên nhóm sử dụng bot",
-			en: "   {pn} [on | off]: turn on/off the mode only admin of group can use bot"
-				+ "\n   {pn} noti [on | off]: turn on/off the notification when user is not admin of group use bot"
+			vi: "   『 {pn} on/off 』: Bật/Tắt chế độ chỉ Quản trị viên\n   『 {pn} noti on/off 』: Bật/Tắt thông báo cảnh báo",
+			en: "   『 {pn} on/off 』: Enable/Disable Admin-only mode\n   『 {pn} noti on/off 』: Enable/Disable warning notifications"
 		}
 	},
 
 	langs: {
 		vi: {
-			turnedOn: "Đã bật chế độ chỉ quản trị viên nhóm mới có thể sử dụng bot",
-			turnedOff: "Đã tắt chế độ chỉ quản trị viên nhóm mới có thể sử dụng bot",
-			turnedOnNoti: "Đã bật thông báo khi người dùng không phải là quản trị viên nhóm sử dụng bot",
-			turnedOffNoti: "Đã tắt thông báo khi người dùng không phải là quản trị viên nhóm sử dụng bot",
-			syntaxError: "Sai cú pháp, chỉ có thể dùng {pn} on hoặc {pn} off"
+			turnedOn: "『 🟢 』 ➜ Đã kích hoạt chế độ: 𝗢𝗡𝗟𝗬 𝗔𝗗𝗠𝗜𝗡.\n『 🛡️ 』 ➜ Hiện tại chỉ Quản trị viên mới có thể điều khiển Bot.",
+			turnedOff: "『 🔴 』 ➜ Đã hủy bỏ chế độ: 𝗢𝗡𝗟𝗬 𝗔𝗗𝗠𝗜𝗡.\n『 👥 』 ➜ Tất cả thành viên đều có thể sử dụng Bot.",
+			turnedOnNoti: "『 ✅ 』 ➜ Cấu hình: 𝗦𝗘𝗡𝗗 𝗡𝗢𝗧𝗜 đã được Bật.\n『 🔔 』 ➜ Bot sẽ gửi thông báo khi người dùng vi phạm quyền hạn.",
+			turnedOffNoti: "『 ❌ 』 ➜ Cấu hình: 𝗦𝗘𝗡𝗗 𝗡𝗢𝗧𝗜 đã được Tắt.\n『 🔕 』 ➜ Bot sẽ im lặng khi người dùng không đủ quyền hạn.",
+			syntaxError: "『 ⚠️ 』 ➜ Sai cú pháp! Vui lòng sử dụng:\n『 💡 』 ➜ {pn} [on | off] hoặc {pn} noti [on | off]"
 		},
 		en: {
-			turnedOn: "Turned on the mode only admin of group can use bot",
-			turnedOff: "Turned off the mode only admin of group can use bot",
-			turnedOnNoti: "Turned on the notification when user is not admin of group use bot",
-			turnedOffNoti: "Turned off the notification when user is not admin of group use bot",
-			syntaxError: "Syntax error, only use {pn} on or {pn} off"
+			turnedOn: "『 🟢 』 ➜ Mode 𝗢𝗡𝗟𝗬 𝗔𝗗𝗠𝗜𝗡 has been Enabled.\n『 🛡️ 』 ➜ Only Group Admins can now interact with the Bot.",
+			turnedOff: "『 🔴 』 ➜ Mode 𝗢𝗡𝗟𝗬 𝗔𝗗𝗠𝗜𝗡 has been Disabled.\n『 👥 』 ➜ All members can now use the Bot freely.",
+			turnedOnNoti: "『 ✅ 』 ➜ Config: 𝗦𝗘𝗡𝗗 𝗡𝗢𝗧𝗜 is now ON.\n『 🔔 』 ➜ Bot will notify when non-admin users attempt to use commands.",
+			turnedOffNoti: "『 ❌ 』 ➜ Config: 𝗦𝗘𝗡𝗗 𝗡𝗢𝗧𝗜 is now OFF.\n『 🔕 』 ➜ Bot will remain silent for non-admin interactions.",
+			syntaxError: "『 ⚠️ 』 ➜ Invalid Syntax!\n『 💡 』 ➜ Use {pn} [on | off] or {pn} noti [on | off]"
 		}
 	},
 
@@ -55,11 +53,13 @@ module.exports = {
 		else
 			return message.reply(getLang("syntaxError"));
 
+		// Logic: hideNoti = true nghĩa là KHÔNG thông báo, nên ta dùng !value khi người dùng chọn 'on'
 		await threadsData.set(event.threadID, isSetNoti ? !value : value, keySetData);
 
-		if (isSetNoti)
-			return message.reply(value ? getLang("turnedOnNoti") : getLang("turnedOffNoti"));
-		else
-			return message.reply(value ? getLang("turnedOn") : getLang("turnedOff"));
+		const response = isSetNoti 
+			? (value ? getLang("turnedOnNoti") : getLang("turnedOffNoti"))
+			: (value ? getLang("turnedOn") : getLang("turnedOff"));
+
+		return message.reply(`━━━━━━━━━━━━━━━━━━\n${response}\n━━━━━━━━━━━━━━━━━━`);
 	}
 };

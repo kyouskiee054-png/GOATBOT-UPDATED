@@ -6,39 +6,20 @@ module.exports = {
 	config: {
 		name: "adminonly",
 		aliases: ["adonly", "onlyad", "onlyadmin"],
-		version: "1.5",
-		author: "NTKhang",
+		version: "4.5",
+		author: "S1FU",
 		countDown: 5,
-		role: 2,
+		role: 2, // ᴏᴡ𝗇𝖾𝗋 ᴏ𝗇𝗅𝗒
 		description: {
-			vi: "bật/tắt chế độ chỉ admin mới có thể sử dụng bot",
-			en: "turn on/off only admin can use bot"
+			en: "ᴛ𝗈𝗀𝗀𝗅𝖾 𝗀𝗅𝗈𝖻𝖺𝗅 𝖺𝖽𝗆𝗂𝗇-𝗈𝗇𝗅𝗒 𝗆𝗈𝖽𝖾 𝗐𝗂𝗍𝗁 𝖺𝖾𝗌𝗍𝗁𝖾𝗍𝗂𝖼 𝗏𝗂𝖻𝖾𝗌"
 		},
-		category: "owner",
+		category: "ᴏcodeᴡ𝗇𝖾𝗋",
 		guide: {
-			vi: "   {pn} [on | off]: bật/tắt chế độ chỉ admin mới có thể sử dụng bot"
-				+ "\n   {pn} noti [on | off]: bật/tắt thông báo khi người dùng không phải là admin sử dụng bot",
-			en: "   {pn} [on | off]: turn on/off the mode only admin can use bot"
-				+ "\n   {pn} noti [on | off]: turn on/off the notification when user is not admin use bot"
+			en: "『 {pn} [𝗈𝗇 | 𝗈𝖿𝖿] 』\n『 {pn} 𝗇𝗈𝗍𝗂 [𝗈𝗇 | 𝗈𝖿𝖿] 』"
 		}
 	},
 
-	langs: {
-		vi: {
-			turnedOn: "Đã bật chế độ chỉ admin mới có thể sử dụng bot",
-			turnedOff: "Đã tắt chế độ chỉ admin mới có thể sử dụng bot",
-			turnedOnNoti: "Đã bật thông báo khi người dùng không phải là admin sử dụng bot",
-			turnedOffNoti: "Đã tắt thông báo khi người dùng không phải là admin sử dụng bot"
-		},
-		en: {
-			turnedOn: "Turned on the mode only admin can use bot",
-			turnedOff: "Turned off the mode only admin can use bot",
-			turnedOnNoti: "Turned on the notification when user is not admin use bot",
-			turnedOffNoti: "Turned off the notification when user is not admin use bot"
-		}
-	},
-
-	onStart: function ({ args, message, getLang }) {
+	onStart: function ({ args, message, event }) {
 		let isSetNoti = false;
 		let value;
 		let indexGetVal = 0;
@@ -52,18 +33,26 @@ module.exports = {
 			value = true;
 		else if (args[indexGetVal] == "off")
 			value = false;
-		else
-			return message.SyntaxError();
+		else {
+            return message.reply(`╭── Ი𐑼 𖹭 ɪ𝗇𝗏𝖺𝗅𝗂𝖽 ɪ𝗇𝗉𝗎𝗍 𖹭 Ი𐑼 ──╮\n\n  ᯓ★ ᴅ𝖾𝖺𝗋, 𝗎𝗌𝖾 𝗈𝗇/𝗈𝖿𝖿 .ᐟ\n  ᯓ★ ᴇ𝗑𝖺𝗆𝗉𝗅𝖾: {pn} 𝗈𝗇\n\n╰── ᯓ★˙𐃷˙݁ ˖Ი𐑼⋆𖹭.ᐟ ──╯`);
+        }
 
+		let msg = "";
 		if (isSetNoti) {
 			config.hideNotiMessage.adminOnly = !value;
-			message.reply(getLang(value ? "turnedOnNoti" : "turnedOffNoti"));
+			msg = value 
+                ? `⋆ 𝗇𝗈𝗍𝗂𝖿𝗂𝖼𝖺𝗍𝗂𝗈𝗇: ᴇ𝗇𝖺𝖻𝗅𝖾𝖽 .ᐟ\n⋆ 𝖻𝗈𝗍 𝗐𝗂𝗅𝗅 𝗐𝗁𝗂𝗌𝗉𝖾𝗋 𝗐𝖺𝗋𝗇𝗂𝗇𝗀𝗌 𖹭` 
+                : `⋆ 𝗇𝗈𝗍𝗂𝖿𝗂𝖼𝖺𝗍𝗂𝗈𝗇: ᴅ𝗂𝗌𝖺𝖻𝗅𝖾𝖽 .ᐟ\n⋆ 𝗌𝗁𝗁𝗁... 𝗌𝗂𝗅𝖾𝗇𝗍 𝗆𝗈𝖽𝖾 𝗂𝗌 𝗈𝗇 ˙𐃷˙`;
 		}
 		else {
 			config.adminOnly.enable = value;
-			message.reply(getLang(value ? "turnedOn" : "turnedOff"));
+			msg = value 
+                ? `⋆ s𝗒𝗌𝗍𝖾𝗆: ᴀ𝖽𝗆𝗂𝗇 ᴏ𝗇𝗅𝗒 .ᐟ\n⋆ 𝖻𝗈𝗍 𝗂𝗌 𝗂𝗇 𝗉𝗋𝗂𝗏𝖺𝗍𝖾 𝗆𝗈𝖽𝖾 Ი𐑼` 
+                : `⋆ s𝗒𝗌𝗍𝖾𝗆: 𝖯𝗎𝖻𝗅𝗂𝖼 𝗆𝗈𝖽𝖾 .ᐟ\n⋆ ᴇ𝗏𝖾𝗋𝗒𝗈𝗇𝖾 𝖼𝖺𝗇 𝗉𝗅𝖺𝗒 𝗇𝗈𝗐 ⋆` ;
 		}
 
 		fs.writeFileSync(client.dirConfig, JSON.stringify(config, null, 2));
+        
+        return message.reply(`╭── Ი𐑼 𖹭 s𝗒𝗌𝗍𝖾𝗆 𖹭 Ი𐑼 ──╮\n\n${msg}\n\n╰── ᯓ★˙𐃷˙݁ ˖Ი𐑼⋆𖹭.ᐟ ──╯`);
 	}
 };

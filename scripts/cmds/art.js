@@ -1,96 +1,65 @@
 const axios = require('axios');
-const fs = require('fs-extra'); 
+const fs = require('fs-extra');
+const FormData = require('form-data');
 const path = require('path');
-
-const API_ENDPOINT = "https://dev.oculux.xyz/api/artv1"; 
 
 module.exports = {
   config: {
     name: "art",
-    aliases: ["artv1", "draw"],
-    version: "1.0", 
-    author: "NeoKEX",
-    countDown: 15,
+    aliases: ["artify", "animeart"],
+    version: "2.0",
+    author: "S1FU",
+    countDown: 10,
     role: 0,
-    longDescription: "Generate an image using the ArtV1 model.",
-    category: "ai-image",
-    guide: {
-      en: "{pn} <prompt>"
-    }
+    shortDescription: { en: "𝖺𝗉𝗉𝗅𝗒 𝖺𝗂 𝖺𝗇𝗂𝗆𝖾 𝗌𝗍𝗒𝗅𝖾" },
+    longDescription: { en: "𝗍𝗋𝖺𝗇𝗌𝖿𝗈𝗋𝗆 𝗒𝗈𝗎𝗋 𝗉𝗁𝗈𝗍𝗈𝗌 𝗂𝗇𝗍𝗈 𝖺𝗂 𝖺𝗇𝗂𝗆𝖾 𝖺𝗋𝗍 𝗏𝗂𝖺 𝗋𝖾𝗉𝗅𝗒" },
+    category: "𝗂𝗆𝖺𝗀𝖾",
+    guide: { en: "『 𝗋𝖾𝗉𝗅𝗒 𝗍𝗈 𝖺𝗇 𝗂𝗆𝖺𝗀𝖾 𝗐𝗂𝗍𝗁 {pn} 』" }
   },
 
-  onStart: async function({ message, args, event }) {
-    
-    let prompt = args.join(" ");
+  onStart: async function ({ message, event, api }) {
+    const { messageReply, threadID, messageID, senderID } = event;
+    const cachePath = path.join(__dirname, 'cache', `artify_${senderID}.jpg`);
 
-    if (!prompt || !/^[\x00-\x7F]*$/.test(prompt)) {
-        return message.reply("❌ Please provide a valid English prompt to generate an image.");
+    if (!messageReply || !messageReply.attachments || messageReply.attachments.length === 0) {
+      return message.reply("╭── Ი𐑼 𖹭 𝖺𝗋𝗍𝗂𝖿𝗒 𖹭 Ი𐑼 ──╮\n\n  ᯓ★ 𝗉𝗅𝖾𝖺𝗌𝖾 𝗋𝖾𝗉𝗅𝗒 𝗍𝗈 𝖺 𝗉𝗁𝗈𝗍𝗈 .ᐟ\n\n╰── ᯓ★˙𐃷˙݁ ˖Ი𐑼⋆𖹭.ᐟ ──╯");
     }
 
-    message.reaction("⏳", event.messageID);
-    let tempFilePath; 
+    const url = messageReply.attachments[0].url;
+    api.setMessageReaction("🎨", messageID, () => {}, true);
 
     try {
-      // The API uses 'p' for prompt
-      const fullApiUrl = `${API_ENDPOINT}?p=${encodeURIComponent(prompt.trim())}`;
-      
-      const imageDownloadResponse = await axios.get(fullApiUrl, {
-          responseType: 'stream',
-          timeout: 45000 
-      });
+      const res = await axios.get(url, { responseType: "arraybuffer" });
+      await fs.outputFile(cachePath, Buffer.from(res.data));
 
-      if (imageDownloadResponse.status !== 200) {
-           throw new Error(`API request failed with status code ${imageDownloadResponse.status}.`);
-      }
-      
-      const cacheDir = path.join(__dirname, 'cache');
-      if (!fs.existsSync(cacheDir)) {
-          await fs.mkdirp(cacheDir); 
-      }
-      
-      tempFilePath = path.join(cacheDir, `artv1_output_${Date.now()}.png`);
-      
-      const writer = fs.createWriteStream(tempFilePath);
-      imageDownloadResponse.data.pipe(writer);
+      const form = new FormData();
+      form.append("image", fs.createReadStream(cachePath));
 
-      await new Promise((resolve, reject) => {
-        writer.on("finish", resolve);
-        writer.on("error", (err) => {
-          writer.close();
-          reject(err);
-        });
-      });
+      const apiRes = await axios.post(
+        "https://art-api-97wn.onrender.com/artify?style=anime",
+        form,
+        { 
+          headers: form.getHeaders(), 
+          responseType: "arraybuffer" 
+        }
+      );
 
-      message.reaction("✅", event.messageID);
+      await fs.outputFile(cachePath, apiRes.data);
+
+      const body = `╭── Ი𐑼 𖹭 𝖺𝗂 𝖺𝗋𝗍𝗂𝖿𝗒 𖹭 Ი𐑼 ──╮\n\n  ᯓ★ 𝗌𝗍𝗒𝗅𝖾: 𝖺𝗇𝗂𝗆𝖾 𝖾𝖽𝗂𝗍𝗂𝗈𝗇\n  ᯓ★ 𝗌𝖾𝗋𝗏𝖾𝖽 𝖻𝗒 𝗌𝟣𝖿𝗎 ⋆\n\n╰── ᯓ★˙𐃷˙݁ ˖Ი𐑼⋆𖹭.ᐟ ──╯`;
+
       await message.reply({
-        body: `ArtV1 image generated ✨`,
-        attachment: fs.createReadStream(tempFilePath)
+        body: body,
+        attachment: fs.createReadStream(cachePath)
       });
 
-    } catch (error) {
-      message.reaction("❌", event.messageID);
-      
-      let errorMessage = "An error occurred during image generation.";
-      if (error.response) {
-         if (error.response.status === 404) {
-             errorMessage = "API Endpoint not found (404).";
-         } else {
-             errorMessage = `HTTP Error: ${error.response.status}`;
-         }
-      } else if (error.code === 'ETIMEDOUT') {
-         errorMessage = `Generation timed out. Try a simpler prompt or check API status.`;
-      } else if (error.message) {
-         errorMessage = `${error.message}`;
-      } else {
-         errorMessage = `Unknown error.`;
-      }
+      if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath);
+      api.setMessageReaction("✅", messageID, () => {}, true);
 
-      console.error("ArtV1 Command Error:", error);
-      message.reply(`❌ ${errorMessage}`);
-    } finally {
-      if (tempFilePath && fs.existsSync(tempFilePath)) {
-          await fs.unlink(tempFilePath); 
-      }
+    } catch (err) {
+      console.error(err);
+      api.setMessageReaction("❌", messageID, () => {}, true);
+      return message.reply("ᯓ★ 𝗌𝗒𝗌𝗍𝖾𝗆 𝖾𝗋𝗋𝗈𝗋 𝗈𝗋 𝖺𝗉𝗂 𝖽𝗈𝗐𝗇 Ი𐑼");
     }
   }
 };
