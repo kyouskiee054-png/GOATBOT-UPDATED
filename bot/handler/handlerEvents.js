@@ -501,6 +501,14 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
                                         await globalData.set("analytics", analytics, "data");
                                 })();
 
+                                // ———————— TYPING INDICATOR ———————— //
+                                const globalTypingEnabled = config.typingIndicator?.enable !== false;
+                                const threadTypingEnabled = threadData.data?.typingIndicator;
+                                const shouldShowTyping = threadTypingEnabled !== undefined ? threadTypingEnabled : globalTypingEnabled;
+                                if (shouldShowTyping) {
+                                        try { api.sendTypingIndicator(threadID); } catch (_) {}
+                                }
+
                                 createMessageSyntaxError(commandName);
                                 const getText2 = createGetText2(langCode, `${process.cwd()}/languages/cmds/${langCode}.js`, prefix, command);
                                 await command.onStart({
