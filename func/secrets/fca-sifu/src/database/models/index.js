@@ -2,14 +2,14 @@ const { Sequelize } = require("sequelize");
 const fs = require("fs");
 const path = require("path");
 
-const databasePath = path.join(process.cwd(), "dhoner_fca_database");
+const databasePath = path.join(process.cwd(), "fca_sifu_database");
 if (!fs.existsSync(databasePath)) {
   fs.mkdirSync(databasePath, { recursive: true });
 }
 
 const sequelize = new Sequelize({
   dialect: "sqlite",
-  storage: path.join(databasePath, "dhoner_fca.sqlite"),
+  storage: path.join(databasePath, "fca_sifu.sqlite"),
   logging: false,
   pool: {
     max: 5,

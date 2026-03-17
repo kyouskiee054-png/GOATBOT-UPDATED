@@ -60,7 +60,7 @@ function deriveKey(ctx, threadID) {
   const pub = crypto.createPublicKey({ key: b64d(e.peers[String(threadID)]), format: 'der', type: 'spki' });
   const shared = crypto.diffieHellman({ privateKey: priv, publicKey: pub });
   const salt = Buffer.from(String(threadID));
-  return crypto.hkdfSync('sha256', shared, salt, Buffer.from('neokex-e2ee-v1'), 32);
+  return crypto.hkdfSync('sha256', shared, salt, Buffer.from('fca-sifu-e2ee-v1'), 32);
 }
 function encrypt(ctx, threadID, plaintext) {
   const key = deriveKey(ctx, threadID);

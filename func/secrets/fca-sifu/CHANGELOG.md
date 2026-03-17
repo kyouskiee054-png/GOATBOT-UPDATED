@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2026-03-14
 
-Initial public release of **dhoner-fca** — a full rewrite/rebranding of the FCA-KEX engine.  
-Developed and maintained by [NeoKEX](https://github.com/NeoKEX).
+Initial public release of **FCA-SIFU** — a full rewrite/rebranding of the FCA-KEX engine.  
+Developed and maintained by [EWR-SIFU](https://github.com/EWR-SIFU).
 
 ### Added
 
@@ -76,7 +76,7 @@ Developed and maintained by [NeoKEX](https://github.com/NeoKEX).
 - `api.notes/gcrule/gcmember/story/realtime/getBotInfo/getBotInitialData/getUserInfoV2` — extended APIs
 
 **TypeScript Support**
-- Full `index.d.ts` with all methods, events, options, and types exported under `declare module "dhoner-fca"`
+- Full `index.d.ts` with all methods, events, options, and types exported under `declare module "FCA-SIFU"`
 
 **Production Monitoring**
 - `ProductionMonitor` — request counts, error rates, response times, rate limit telemetry
@@ -88,10 +88,10 @@ Developed and maintained by [NeoKEX](https://github.com/NeoKEX).
 - `sendMessage` now calls `prepareBeforeMessage` before every send
 - Volume limit checks (`isDailyLimitReached`, `isHourlyLimitReached`) now apply to both send paths
 - TypeScript: removed duplicate `API` interface declaration and stray closing brace
-- Database path renamed from `fca_kex_database` to `dhoner_fca_database`
-- Credits function updated to reference `dhoner-fca` and `github.com/NeoKEX`
+- Database path renamed from `fca_sifu_database` to `fca_sifu_database`
+- Credits function updated to reference `FCA-SIFU` and `github.com/EWR-SIFU`
 
 ---
 
-> **Developed and maintained by [NeoKEX](https://github.com/NeoKEX)**  
+> **Developed and maintained by [EWR-SIFU](https://github.com/EWR-SIFU)**  
 > Inspired by **ws3-fca** and **@dongdev/fca-unofficial**

@@ -1,15 +1,15 @@
 # Login with Cookie Array
 
-**dhoner-fca** supports multiple authentication methods. This guide explains how to login using a cookie array instead of email/password credentials.
+**FCA-SIFU** supports multiple authentication methods. This guide explains how to login using a cookie array instead of email/password credentials.
 
-> **Credits:** Developed and maintained by [NeoKEX](https://github.com/NeoKEX)
+> **Credits:** Developed and maintained by [EWR-SIFU](https://github.com/EWR-SIFU)
 
 ---
 
 ## Quick Start
 
 ```javascript
-const { login } = require('dhoner-fca');
+const { login } = require('FCA-SIFU');
 
 const cookieArray = [
     { name: 'c_user', value: 'YOUR_USER_ID' },
@@ -99,7 +99,7 @@ Export the cookies as JSON and save as `appstate.json`.
 
 ```javascript
 const fs = require('fs');
-const { login } = require('dhoner-fca');
+const { login } = require('FCA-SIFU');
 
 const appState = JSON.parse(fs.readFileSync('appstate.json', 'utf8'));
 
@@ -182,7 +182,7 @@ login({
 
 ## AppState Backup
 
-**dhoner-fca** automatically saves and restores your session state internally.  
+**FCA-SIFU** automatically saves and restores your session state internally.  
 To manually save the current session after login:
 
 ```javascript
@@ -204,5 +204,5 @@ login({ appState }, {}, (err, api) => {
 
 ---
 
-> **Credits:** dhoner-fca is developed and maintained by [NeoKEX](https://github.com/NeoKEX).  
+> **Credits:** FCA-SIFU is developed and maintained by [EWR-SIFU](https://github.com/EWR-SIFU).  
 > Inspired by **ws3-fca** and **@dongdev/fca-unofficial**

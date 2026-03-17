@@ -5,7 +5,7 @@
  * Comprehensive protection against Facebook bot account suspension.
  * Designed to be fast (single-delay model) yet stealth.
  *
- * Credits: NeoKEX — https://github.com/NeoKEX
+ * Credits: EWR-SIFU — https://github.com/EWR-SIFU
  */
 
 const SUSPENSION_SIGNALS = [
