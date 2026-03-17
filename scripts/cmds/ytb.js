@@ -65,7 +65,7 @@ module.exports = {
         { body: s + "Reply with number (1-6) to download", attachment: w },
         k.threadID,
         (err, y) => {
-          global.GoatBot.onReply.set(y.messageID, {
+          global.SizuBot.onReply.set(y.messageID, {
             commandName: l,
             messageID: y.messageID,
             author: k.senderID,

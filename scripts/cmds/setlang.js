@@ -1,80 +1,77 @@
 const fs = require("fs-extra");
+const path = require("path");
 
 module.exports = {
-	config: {
-		name: "setlang",
-		version: "1.5",
-		author: "NTKhang",
-		countDown: 5,
-		role: 0,
-		description: {
-			vi: "Cài đặt ngôn ngữ của bot cho nhóm chat hiện tại hoặc tất cả các nhóm chat",
-			en: "Set default language of bot for current chat or all chats"
-		},
-		category: "owner",
-		guide: {
-			vi: "   {pn} <language code ISO 639-1"
-				+ "\n   Ví dụ:"
-				+ "\n    {pn} en"
-				+ "\n    {pn} vi",
-			en: "\n   {pn} <language code ISO 639-1"
-				+ "\n   Example:"
-				+ "\n    {pn} en"
-				+ "\n    {pn} vi"
-		}
-	},
+  config: {
+    name: "setlang",
+    version: "2.0.0",
+    author: "S1FU",
+    countDown: 5,
+    role: 0,
+    category: "𝗈𝗐𝗇𝖾𝗋",
+    shortDescription: {
+      en: "𝗌𝖾𝗍 𝖽𝖾𝖿𝖺𝗎𝗅𝗍 𝗅𝖺𝗇𝗀𝗎𝖺𝗀𝖾 𝗈𝖿 𝗍𝗁𝖾 𝖻𝗈𝗍"
+    },
+    guide: {
+      en: "『 {pn} <𝗅𝖺𝗇𝗀𝗎𝖺𝗀𝖾 𝖼𝗈𝖽𝖾> [-𝗀𝗅𝗈𝖻𝖺𝗅] 』"
+    }
+  },
 
-	langs: {
-		vi: {
-			setLangForAll: "Đã cài đặt ngôn ngữ mặc định cho bot là: %1",
-			setLangForCurrent: "Đã cài đặt ngôn ngữ mặc định cho nhóm chat này là: %1",
-			noPermission: "Chỉ admin bot mới có thể sử dụng lệnh này",
-			langNotFound: "Không tìm thấy ngôn ngữ: %1"
-		},
-		en: {
-			setLangForAll: "Set default language of bot to: %1",
-			setLangForCurrent: "Set default language for current chat: %1",
-			noPermission: "Only bot admin can use this command",
-			langNotFound: "Can't find language: %1"
-		}
-	},
+  onStart: async function ({ message, args, threadsData, role, event }) {
+    const stylize = (text) => {
+      const fonts = {
+        "a":"𝖺","b":"𝖻","c":"𝖼","d":"𝖽","e":"𝖾","f":"𝖿","g":"𝗀","h":"𝗁","i":"𝗂","j":"𝗃","k":"𝗄","l":"𝗅","m":"𝗆",
+        "n":"𝗇","o":"𝗈","p":"𝗉","q":"𝗊","r":"𝗋","s":"𝗌","t":"𝗍","u":"𝗎","v":"𝗏","w":"𝗐","x":"𝗑","y":"𝗒","z":"𝗓"
+      };
+      return text.toString().toLowerCase().split('').map(char => fonts[char] || char).join('');
+    };
 
-	onStart: async function ({ message, args, getLang, threadsData, role, event }) {
-		if (!args[0])
-			return message.SyntaxError;
-		let langCode = args[0].toLowerCase();
-		if (langCode == "default" || langCode == "reset")
-			langCode = null;
+    if (!args[0]) {
+      return message.reply(`✧ 𐃷 ${stylize("𝗉𝗅𝖾𝖺𝗌𝖾 𝗉𝗋𝗈𝗏𝗂𝖽𝖾 𝖺 𝗅𝖺𝗇𝗀𝗎𝖺𝗀𝖾 𝖼𝗈𝖽𝖾")} (𝖾𝗇, 𝗏𝗂) Ი𐑼 𖹭`);
+    }
 
-		if (["-g", "-global", "all"].includes(args[1]?.toLowerCase())) {
-			if (role < 2)
-				return message.reply(getLang("noPermission"));
-			const pathLanguageFile = `${process.cwd()}/languages/${langCode}.lang`;
-			if (!fs.existsSync(pathLanguageFile))
-				return message.reply(getLang("langNotFound", langCode));
-			const readLanguage = fs.readFileSync(pathLanguageFile, "utf-8");
-			const languageData = readLanguage
-				.split(/\r?\n|\r/)
-				.filter(line => line && !line.trim().startsWith("#") && !line.trim().startsWith("//") && line != "");
+    let langCode = args[0].toLowerCase();
+    if (langCode === "default" || langCode === "reset") langCode = null;
 
-			global.language = {};
-			for (const sentence of languageData) {
-				const getSeparator = sentence.indexOf('=');
-				const itemKey = sentence.slice(0, getSeparator).trim();
-				const itemValue = sentence.slice(getSeparator + 1, sentence.length).trim();
-				const head = itemKey.slice(0, itemKey.indexOf('.'));
-				const key = itemKey.replace(head + '.', '');
-				const value = itemValue.replace(/\\n/gi, '\n');
-				if (!global.language[head])
-					global.language[head] = {};
-				global.language[head][key] = value;
-			}
-			global.GoatBot.config.language = langCode;
-			fs.writeFileSync(global.client.dirConfig, JSON.stringify(global.GoatBot.config, null, 2));
-			return message.reply(getLang("setLangForAll", langCode));
-		}
+    const isGlobal = ["-g", "-global", "all"].includes(args[1]?.toLowerCase());
 
-		await threadsData.set(event.threadID, langCode, "data.lang");
-		return message.reply((global.GoatBot.commands.get("setlang")?.langs[langCode]?.setLangForCurrent || "Set default language for current chat: %1").replace("%1", langCode));
-	}
+    if (isGlobal) {
+      if (role < 2) {
+        return message.reply(`✧ 𐃷 ${stylize("𝗈𝗇𝗅𝗒 𝖻𝗈𝗍 𝖺𝖽𝗆𝗂𝗇 𝖼𝖺𝗇 𝗎𝗌𝖾 𝗀𝗅𝗈𝖻𝖺𝗅 𝗌𝖾𝗍𝗍𝗂𝗇𝗀𝗌")} Ი𐑼 𖹭`);
+      }
+
+      const langPath = path.join(process.cwd(), "languages", `${langCode}.lang`);
+      if (!fs.existsSync(langPath)) {
+        return message.reply(`✧ 𐃷 ${stylize("𝗅𝖺𝗇𝗀𝗎𝖺𝗀𝖾 𝖿𝗂𝗅𝖾 𝗇𝗈𝗍 𝖿𝗈𝗎𝗇𝖽")}: ${langCode} Ი𐑼`);
+      }
+
+      const langData = fs.readFileSync(langPath, "utf-8")
+        .split(/\r?\n/)
+        .filter(line => line.trim() && !line.startsWith("#") && !line.startsWith("//"));
+
+      global.language = {};
+      for (const line of langData) {
+        const sep = line.indexOf('=');
+        if (sep === -1) continue;
+        const keyFull = line.slice(0, sep).trim();
+        const val = line.slice(sep + 1).trim().replace(/\\n/gi, '\n');
+        const dot = keyFull.indexOf('.');
+        const head = keyFull.slice(0, dot);
+        const key = keyFull.slice(dot + 1);
+        
+        if (!global.language[head]) global.language[head] = {};
+        global.language[head][key] = val;
+      }
+
+      global.SizuBot.config.language = langCode;
+      fs.writeFileSync(global.client.dirConfig, JSON.stringify(global.SizuBot.config, null, 2));
+      
+      message.reaction("✨", event.messageID);
+      return message.reply(`✨ ${stylize("𝗀𝗅𝗈𝖻𝖺𝗅 𝗅𝖺𝗇𝗀𝗎𝖺𝗀𝖾 𝗌𝖾𝗍 𝗍𝗈")}: ${langCode} 𐃷 Ი𐑼`);
+    }
+
+    await threadsData.set(event.threadID, langCode, "data.lang");
+    message.reaction("✅", event.messageID);
+    return message.reply(`✨ ${stylize("𝗅𝖺𝗇𝗀𝗎𝖺𝗀𝖾 𝖿𝗈𝗋 𝗍𝗁𝗂𝗌 𝖼𝗁𝖺𝗍 𝗌𝖾𝗍 𝗍𝗈")}: ${langCode} 𐃷 Ი𐑼`);
+  }
 };
