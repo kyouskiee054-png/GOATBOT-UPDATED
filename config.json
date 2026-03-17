@@ -50,7 +50,7 @@
   },
   "database": {
     "type": "mongodb",
-    "uriMongodb": "mongodb+srv://goatbotdb:100078859776449@cluster0.ahxxd2o.mongodb.net",
+    "uriMongodb": "",  // mongodb+srv://goatbotdb:100078859776449@cluster0.ahxxd2o.mongodb.net
     "autoSyncWhenStart": false,
     "autoRefreshThreadInfoFirstTime": true,
     "notes": "type: 'json' | 'sqlite' | 'mongodb'. If mongodb, set uriMongodb. autoSyncWhenStart syncs DB on startup (slower). autoRefreshThreadInfoFirstTime refreshes thread info on first message."
