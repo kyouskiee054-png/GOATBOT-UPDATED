@@ -11,20 +11,19 @@ const { log, loading, getText, colors, removeHomeDir } = global.utils;
 const { GoatBot } = global;
 const { configCommands } = GoatBot;
 const regExpCheckPackage = /require(\s+|)\((\s+|)[`'"]([^`'"]+)[`'"](\s+|)\)/g;
-const packageAlready = [];
-// const spinner = '\\|/-';
-const spinner = [
-	'⠋', '⠙', '⠹',
-	'⠸', '⠼', '⠴',
-	'⠦', '⠧', '⠇',
-	'⠏'
+const packageAlready = []; 
+const spnner = [
+	'☣︎', '☣︎', '☣︎',
+	'☣︎', '☣︎', '☣︎',
+	'☣︎', '☣︎', '☣︎',
+	'☣︎'
 ];
 let count = 0;
 
 module.exports = async function (api, threadModel, userModel, dashBoardModel, globalModel, threadsData, usersData, dashBoardData, globalData, createLine) {
-	/* { CHECK ORIGIN CODE } */
+	 
 
-	const aliasesData = await globalData.get('setalias', 'data', []);
+const aliasesData = await globalData.get('setalias', 'data', []);
 	if (aliasesData) {
 		for (const data of aliasesData) {
 			const { aliases, commandName } = data;
@@ -40,8 +39,8 @@ module.exports = async function (api, threadModel, userModel, dashBoardModel, gl
 
 	for (const folderModules of folders) {
 		const makeColor = folderModules == "cmds" ?
-			createLine("LOAD COMMANDS") :
-			createLine("LOAD COMMANDS EVENT");
+			createLine("ZERO LOAD COMMANDS") :
+			createLine("ZERO LOAD COMMANDS EVENT");
 		console.log(colors.hex("#f5ab00")(makeColor));
 
 		if (folderModules == "cmds") {
