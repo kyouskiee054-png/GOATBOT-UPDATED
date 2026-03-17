@@ -145,6 +145,7 @@
     "selfListenEvent": true,
     "autoMarkDelivery": false,
     "autoReconnect": false,
+    "simulateTyping": false,
     "notes": "Document here: https://github.com/ewr-sifu/FCA-SIFU/README.md"
   }
 }
