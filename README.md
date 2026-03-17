@@ -3,16 +3,16 @@
 <div align="center">
   <h1>🍄 <strong>ZERO - BOT</strong> 🍄</h1>
   <h2>✨ <em>Advanced Messenger AI Chat Bot</em> ✨</h2>
-  <p><strong>Next-Gen AI-Powered Facebook Messenger Bot</strong> | Built with love & intelligence</p>
+  <p><strong>Next-Gen AI-Powered Facebook Messenger Bot</strong> | Built with love by SiFu</p>
   
-  <a href="https://github.com/Ewr-SiFu/YOUR-REPO-NAME">
-    <img src="https://img.shields.io/github/stars/Ewr-SiFu/YOUR-REPO-NAME?style=for-the-badge&logo=github&color=purple" alt="Stars">
+  <a href="https://github.com/Ewr-SiFu/ZEROxGOAT-V2">
+    <img src="https://img.shields.io/github/stars/Ewr-SiFu/ZEROxGOAT-V2?style=for-the-badge&logo=github&color=purple" alt="Stars">
   </a>
-  <a href="https://github.com/Ewr-SiFu/YOUR-REPO-NAME/fork">
-    <img src="https://img.shields.io/github/forks/Ewr-SiFu/YOUR-REPO-NAME?style=for-the-badge&logo=github&color=blue" alt="Forks">
+  <a href="https://github.com/Ewr-SiFu/ZEROxGOAT-V2/fork">
+    <img src="https://img.shields.io/github/forks/Ewr-SiFu/ZEROxGOAT-V2?style=for-the-badge&logo=github&color=blue" alt="Forks">
   </a>
-  <a href="https://github.com/Ewr-SiFu/YOUR-REPO-NAME/issues">
-    <img src="https://img.shields.io/github/issues/Ewr-SiFu/YOUR-REPO-NAME?style=for-the-badge&logo=github&color=orange" alt="Issues">
+  <a href="https://github.com/Ewr-SiFu/ZEROxGOAT-V2/issues">
+    <img src="https://img.shields.io/github/issues/Ewr-SiFu/ZEROxGOAT-V2?style=for-the-badge&logo=github&color=orange" alt="Issues">
   </a>
 </div>
 
@@ -26,8 +26,8 @@
 - 🎨 **Beautiful & Modern Interface** (when viewed in Messenger)
 - 🔧 **Easy Customization** — Commands, auto-reply, AI personality
 - 📊 **Advanced Logging & Analytics**
-- 🛡️ **Secure & Stable** (based on proven ntkhang architecture)
-- 🌐 **Multi-Platform Deployment Ready**
+- 🛡️ **Secure & Stable** (based on proven ntkhang )
+- 🌐 **Multi-Platform Deployment**
 
 </div>
 
@@ -41,7 +41,7 @@
   <tr>
     <td align="center" width="180">
       <img src="https://img.shields.io/badge/HEROKU-430098?style=for-the-badge&logo=heroku&logoColor=white" height="40" /><br>
-      <a href="https://dashboard.heroku.com/new-app?template=https://github.com/Ewr-SiFu/YOUR-REPO-NAME">
+      <a href="https://dashboard.heroku.com/new-app?template=https://github.com/Ewr-SiFu/ZEROxGOAT-V2">
         <img src="https://img.shields.io/badge/DEPLOY%20ON%20HEROKU-purple?style=for-the-badge&logo=heroku" height="38" />
       </a>
     </td>
@@ -91,9 +91,9 @@
 **Team Heartless** 💖
 
 - **Developer & Maintainer**: **MD SIFAT** 🍓  
-- **Original Creator**: **ntkhang** (Goat-Bot architecture) ❄️
+- **Original Creator**: **ntkhang** (Goat-Bot-V2) ❄️
 
-**Special Thanks** to the entire open-source community for making AI bots accessible.
+**Special Thanks** あ_Tєαᴍ нєαятℓєѕѕ_あ
 
 </div>
 
@@ -106,9 +106,9 @@
 ⭐ **Fork & Star** this repository if you like it!  
 
 [![Subscribe YouTube](https://img.shields.io/badge/Subscribe-YouTube-red?style=for-the-badge&logo=youtube&logoColor=white)](https://youtube.com/@maybes1fu)
-[![Follow Facebook](https://img.shields.io/badge/Follow-Facebook-blue?style=for-the-badge&logo=facebook&logoColor=white)](https://www.facebook.com/profile.php?id=100078859776449)
+[![Follow Facebook](https://img.shields.io/badge/Follow-Facebook-blue?style=for-the-badge&logo=facebook&logoColor=white)](https://www.facebook.com/profile.php?id=100087331405932)
 [![Join Group](https://img.shields.io/badge/Join-Facebook%20Group-blue?style=for-the-badge&logo=facebook)](https://facebook.com/groups/931837556457123/)
-[![Messenger Group](https://img.shields.io/badge/Join-Messenger%20Group-blue?style=for-the-badge&logo=messenger)](https://m.me/j/AbYtX_MzRz5ykdhT/)
+[![Messenger Group](https://img.shields.io/badge/Join-Messenger%20Group-blue?style=for-the-badge&logo=messenger)](https://m.me/j/AbZyEjKlW84rxu2t/?send_source=gc%3Acopy_invite_link_c)
 [![Telegram](https://img.shields.io/badge/Join-Telegram-blue?style=for-the-badge&logo=telegram)](https://t.me/Ewr-sifuh4x)
 [![GitHub Follow](https://img.shields.io/github/followers/Ewr-SiFu?style=social)](https://github.com/Ewr-SiFu)
 
@@ -123,11 +123,11 @@
 <br>
 
 <div align="center">
-  <i>Made with ❤️ & 🍄 for the Messenger community</i><br>
+  <i>Made with ❤️ by SiFu for the Messenger bot community</i><br>
   <strong>Don't forget to give a ⭐ if you love this bot!</strong>
 </div>
 
 ---
 
-**Repository**: `https://github.com/Ewr-SiFu/YOUR-REPO-NAME` (replace with your actual repo)  
-**Version**: Advanced 2026 Edition | Modern Dark/Light compatible UI
+**Repository**: `https://github.com/Ewr-SiFu/ZEROxGOAT-V2`   
+**Version**:  2026 / V2 Advance Edition ..!¡
