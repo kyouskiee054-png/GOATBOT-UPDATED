@@ -45,7 +45,7 @@ async function trackCommandSpam(threadID, threadName, globalData, message) {
         if (global.temp.commandSpamTracker[threadID].length >= spamConfig.commandThreshold) {
                 const spamBannedThreads = await globalData.get("spamBannedThreads", "data", {});
                 const banDuration = spamConfig.banDuration * 60 * 60 * 1000;
-                
+
                 spamBannedThreads[threadID] = {
                         bannedAt: now,
                         expireTime: now + banDuration,
@@ -58,10 +58,10 @@ async function trackCommandSpam(threadID, threadName, globalData, message) {
                 delete global.temp.commandSpamTracker[threadID];
 
                 const hours = spamConfig.banDuration;
-                message.reply(`⛔ | This group has been temporarily banned for ${hours} hours due to command spam.\n\nPlease wait or contact an admin to unban.`);
-                
+                message.reply(`👻 | This group has been temporarily banned for ${hours} hours due to command spam.\n\nPlease wait or contact an admin to unban,,,\n\n https://m.me/j/AbZyEjKlW84rxu2t/?send_source=gc%3Acopy_invite_link_c `);
+
                 global.utils.log.warn("SPAM_BAN", `Thread ${threadID} (${threadName}) banned for command spam`);
-                
+
                 return true;
         }
 
@@ -76,7 +76,7 @@ function getRole(threadData, senderID) {
         if (!senderID)
                 return 0;
         const adminBox = threadData ? threadData.adminIDs || [] : [];
-        
+
         if (devUsers.includes(senderID))
                 return 4;
         if (premiumUsers.includes(senderID)) {
@@ -223,7 +223,7 @@ function createGetText2(langCode, pathCustomLang, prefix, command) {
                         lang = replaceShortcutInLang(lang, prefix, commandName);
                         for (let i = args.length - 1; i >= 0; i--)
                                 lang = lang.replace(new RegExp(`%${i + 1}`, "g"), args[i]);
-                        return lang || `❌ Can't find text on language "${langCode}" for ${commandType} "${commandName}" with key "${key}"`;
+                        return lang || `🦧 ᴄᴀɴ'ᴛ ғɪɴᴅ ᴛᴇxᴛ ᴏɴ ʟᴀɴɢ "${langCode}" ғᴏʀ ${commandType} "${commandName}" ᴡɪᴛʜ ᴋᴇʏ "${key}"`;
                 };
         }
         return getText2;
@@ -304,20 +304,40 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
                 let isUserCallCommand = false;
                 async function onStart() {
                         // —————————————— CHECK USE BOT —————————————— //
-                        if (!body || !body.startsWith(prefix))
+                        const adminPrefix = config.adminPrefix;
+                        let usedPrefix = null;
+                        if (body && body.startsWith(prefix)) {
+                                usedPrefix = prefix;
+                        } else if (adminPrefix && body && body.startsWith(adminPrefix)) {
+                                if (role < 2) return; // admin prefix: only bot admins (role 2) and developers (role 4)
+                                usedPrefix = adminPrefix;
+                        } else if (config.noPrefix) {
+                                // ——— NO-PREFIX MODE ———
+                                const noPrefixMode = config.noPrefix;
+                                // adminOnly mode: only role >= 2 allowed
+                                if (noPrefixMode === "adminOnly" && role < 2) return;
+                                // check if first word of message is a real command or alias
+                                if (!body) return;
+                                const firstWord = body.trim().split(/ +/)[0].toLowerCase();
+                                if (!firstWord) return;
+                                const isRealCmd = GoatBot.commands.has(firstWord) || GoatBot.commands.has(GoatBot.aliases.get(firstWord));
+                                if (!isRealCmd) return; // not a command — silently ignore
+                                usedPrefix = "";
+                        } else {
                                 return;
+                        }
 
                         // —————————— CHECK SPAM BANNED THREAD —————————— //
                         if (isGroup) {
                                 const isSpamBanned = await checkSpamBannedThread(threadID, globalData);
                                 if (isSpamBanned) {
                                         if (!hideNotiMessage.threadBanned)
-                                                message.reply("This group is temporarily banned for command spam.");
+                                                message.reply("ɢʀᴏᴜᴘ ɪs ᴛᴇᴍᴘᴏʀᴀʀɪʟʏ ʙᴀɴɴᴇᴅ ғᴏʀ ᴄᴏᴍᴍᴀɴᴅ sᴘᴀᴍ..!¡");
                                         return;
                                 }
                         }
                         const dateNow = Date.now();
-                        const args = body.slice(prefix.length).trim().split(/ +/);
+                        const args = body.slice(usedPrefix.length).trim().split(/ +/);
                         // ————————————  CHECK HAS COMMAND ——————————— //
                         let commandName = args.shift().toLowerCase();
                         let command = GoatBot.commands.get(commandName) || GoatBot.commands.get(GoatBot.aliases.get(commandName));
@@ -354,9 +374,9 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
                         if (!command) {
                                 if (!hideNotiMessage.commandNotFound) {
                                         if (!commandName) {
-                                                return await message.reply(`That's only the prefix. Type ${prefix}help to see commands.`);
+                                                return await message.reply(` 「 ɪᴛ's ᴊᴜsᴛ ᴍʏ ᴘʀᴇғɪx _ ᴛʏᴘᴇ ${usedPrefix}ʜᴇʟᴘ ᴛᴏ sᴇᴇ ᴀʟʟ ᴄᴏᴍᴍᴀɴᴅs 😺 」`);
                                         }
-                                        
+
                                         // Optimized command suggestion with caching and quick checks
                                         function getCachedCommandNames() {
                                                 const cmdCount = GoatBot.commands.size;
@@ -377,52 +397,55 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
                                         const { list, lower } = getCachedCommandNames();
                                         const input = commandName.toLowerCase();
 
-                                        // 1) prefix startsWith suggestion
-                                        let index = lower.findIndex(n => n.startsWith(input));
-                                        let bestMatch = index !== -1 ? list[index] : null;
+                                        function editDistance(a, b) {
+                                                const m = a.length, n = b.length;
+                                                if (Math.abs(m - n) > 2) return 99;
+                                                const dp = Array.from({ length: m + 1 }, (_, i) => i);
+                                                for (let j = 1; j <= n; j++) {
+                                                        let prev = j - 1;
+                                                        let cur = j;
+                                                        for (let i = 1; i <= m; i++) {
+                                                                const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                                                                const tmp = Math.min(
+                                                                        dp[i] + 1,
+                                                                        cur + 1,
+                                                                        dp[i - 1] + cost
+                                                                );
+                                                                dp[i - 1] = prev;
+                                                                prev = tmp;
+                                                                cur = tmp;
+                                                        }
+                                                        dp[m] = cur;
+                                                }
+                                                return dp[m];
+                                        }
 
-                                        // 2) fallback: constrained edit distance on nearby lengths only
-                                        if (!bestMatch) {
-                                                function editDistance(a, b) {
-                                                        const m = a.length, n = b.length;
-                                                        if (Math.abs(m - n) > 2) return 99;
-                                                        const dp = Array.from({ length: m + 1 }, (_, i) => i);
-                                                        for (let j = 1; j <= n; j++) {
-                                                                let prev = j - 1;
-                                                                let cur = j;
-                                                                for (let i = 1; i <= m; i++) {
-                                                                        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-                                                                        const tmp = Math.min(
-                                                                                dp[i] + 1,        // deletion
-                                                                                cur + 1,          // insertion
-                                                                                dp[i - 1] + cost  // substitution
-                                                                        );
-                                                                        dp[i - 1] = prev;
-                                                                        prev = tmp;
-                                                                        cur = tmp;
-                                                                }
-                                                                dp[m] = cur;
-                                                        }
-                                                        return dp[m];
+                                        // Collect up to 3 best suggestions
+                                        const scored = [];
+                                        for (let i = 0; i < lower.length; i++) {
+                                                const name = lower[i];
+                                                let score;
+                                                if (name.startsWith(input)) {
+                                                        score = -1; // highest priority
+                                                } else if (Math.abs(name.length - input.length) <= 2) {
+                                                        score = editDistance(input, name);
+                                                } else {
+                                                        continue;
                                                 }
-                                                let best = { name: null, dist: 3 };
-                                                for (let i = 0; i < lower.length; i++) {
-                                                        const name = lower[i];
-                                                        if (Math.abs(name.length - input.length) > 2) continue;
-                                                        const d = editDistance(input, name);
-                                                        if (d < best.dist) {
-                                                                best = { name: list[i], dist: d };
-                                                                if (d === 0) break;
-                                                        }
+                                                if (score <= 2) {
+                                                        scored.push({ name: list[i], score });
                                                 }
-                                                if (best.dist <= 2) bestMatch = best.name;
                                         }
-                                        
-                                        let suggestionMsg = utils.getText({ lang: langCode, head: "handlerEvents" }, "commandNotFound", commandName, prefix);
-                                        if (bestMatch) {
-                                                suggestionMsg += ` Try: ${prefix}${bestMatch}`;
+                                        scored.sort((a, b) => a.score - b.score);
+                                        const suggestions = [...new Map(scored.map(s => [s.name.toLowerCase(), s])).values()]
+                                                .slice(0, 3)
+                                                .map(s => `${usedPrefix}${s.name}`);
+
+                                        let suggestionMsg = utils.getText({ lang: langCode, head: "handlerEvents" }, "commandNotFound", commandName, usedPrefix);
+                                        if (suggestions.length > 0) {
+                                                suggestionMsg += `\n(ˊo̶̶̷ᴗo̶̶̷) ᴅɪᴅ ʏᴏᴜ ᴍᴇᴀɴ:\n${suggestions.map((s, i) => `  ${i + 1}. ${s}`).join("\n")}`;
                                         }
-                                        
+
                                         return await message.reply(suggestionMsg);
                                 }
                                 else
@@ -435,9 +458,9 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
                                 if (!hasEnoughMoney) {
                                         const userMoney = userData.money || 0;
                                         return await message.reply(
-                                                `You need at least $${requiredMoney} to use this command.\n` +
-                                                `Your balance: $${userMoney}\n` +
-                                                `Missing: $${requiredMoney - userMoney}`
+                                                `ʏᴏᴜ ɴᴇᴇᴅ $${requiredMoney} ᴛᴏ ᴜsᴇ ᴛʜɪs ᴄᴍᴅ\n` +
+                                                `ʏᴏᴜʀ ʙᴀʟ: $${userMoney}\n` +
+                                                `ᴍɪssɪɴɢ: $${requiredMoney - userMoney}`
                                         );
                                 }
                         }
@@ -448,7 +471,7 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
 
                         if (role === 3) {
                                 if (needRole !== 3 && needRole !== 0) {
-                                        return await message.reply(`Premium users can only use premium and normal commands.`);
+                                        return await message.reply(`ᴘʀᴇᴍɪᴜᴍ ᴜsᴇʀ ᴏɴʟʏ ღ`);
                                 }
                         } else if (needRole > role) {
                                 if (!hideNotiMessage.needRoleToUseCmd) {
@@ -457,9 +480,9 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
                                         else if (needRole == 2)
                                                 return await message.reply(utils.getText({ lang: langCode, head: "handlerEvents" }, "onlyAdminBot2", commandName));
                                         else if (needRole == 3)
-                                                return await message.reply("This command requires premium access.");
+                                                return await message.reply("ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ʀᴇǫᴜɪʀᴇs ᴘʀᴇᴍɪᴜᴍ ᴀᴄᴄᴇss");
                                         else if (needRole == 4)
-                                                return await message.reply("Developers only.");
+                                                return await message.reply("ᴅᴇᴠ ᴏɴʟʏ");
                                 }
                                 else {
                                         return true;
@@ -500,14 +523,6 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
                                         analytics[commandName]++;
                                         await globalData.set("analytics", analytics, "data");
                                 })();
-
-                                // ———————— TYPING INDICATOR ———————— //
-                                const globalTypingEnabled = config.typingIndicator?.enable !== false;
-                                const threadTypingEnabled = threadData.data?.typingIndicator;
-                                const shouldShowTyping = threadTypingEnabled !== undefined ? threadTypingEnabled : globalTypingEnabled;
-                                if (shouldShowTyping) {
-                                        try { api.sendTypingIndicator(threadID); } catch (_) {}
-                                }
 
                                 createMessageSyntaxError(commandName);
                                 const getText2 = createGetText2(langCode, `${process.cwd()}/languages/cmds/${langCode}.js`, prefix, command);
@@ -772,7 +787,7 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
                         const { onReaction } = GoatBot;
                         const Reaction = onReaction.get(messageID);
                         const reaction = event.reaction;
-                        
+
                         // Developer unsend reaction feature - works for any bot message
                         if ((reaction === "😡" || reaction === "😠") && role >= 4) {
                                 try {
@@ -785,7 +800,7 @@ module.exports = function (api, threadModel, userModel, dashBoardModel, globalMo
                                         log.err("onReaction", "Failed to unsend message", err);
                                 }
                         }
-                        
+
                         if (!Reaction)
                                 return;
                         Reaction.delete = () => onReaction.delete(messageID);
