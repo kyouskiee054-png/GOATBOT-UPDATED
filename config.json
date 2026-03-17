@@ -11,9 +11,9 @@
   },
   "language": "en",
   "notesLanguage": "ISO 639-1 code. Available: vi (Vietnamese), en (English)",
-  "nickNameBot": "Zero ♥️🎀",
+  "nickNameBot": "{Zero 🎀}",
   "prefix": ",",
-  "adminPrefix": "!",
+  "adminPrefix": "😏",
   "notes_adminPrefix": "A second prefix only usable by bot admins (role 2+). Leave empty string or null to disable.",
   "noPrefix": false,
   "notes_noPrefix": "Allow commands without prefix. Set false to disable, true to enable for all users, or 'adminOnly' to allow only bot admins.",
@@ -35,10 +35,11 @@
   ],
   "notes_devUsers": "List of developer IDs with full access (role 4).",
   "whiteListMode": {
-    "enable": true,
+    "enable": false,
     "whiteListIds": [
       "100078859776449",
-      "100087331405932"
+      "100087331405932",
+      "61587293004504"
     ],
     "notes": "Only users in whiteListIds can use the bot when enabled."
   },
