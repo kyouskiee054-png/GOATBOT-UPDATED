@@ -1,268 +1,189 @@
 const createFuncMessage = global.utils.message;
 const handlerCheckDB = require("./handlerCheckData.js");
 
-// ────────────────────────────────────────────────
-//          REACTION COMMANDS CONFIGURATION
-// ────────────────────────────────────────────────
 const REACTION_COMMANDS = {
-  kick:    "🦵",       // Kick user from group
-  unsend:  ["😠", "😡", "😾", "🤬"],   // Unsend angry reactions
-  mute:    "🔇",       // Mute (kick + add to muted list)
-  unmute:  "🔊",       // Remove from muted list
-  warn:    "⚠️",       // Warn user (count + auto-kick at 3)
-  ban:     "🚫",       // Ban (kick + add to banned list)
-  unban:   "🔓"        // Remove from banned list
+  kick:    "🦵",
+  unsend:  ["😠", "😡", "😾", "🤬"],
+  mute:    "🔇",
+  unmute:  "🔊",
+  warn:    "⚠️",
+  ban:     "🚫",
+  unban:   "🔓"
 };
 
-// ────────────────────────────────────────────────
-//          MAIN MODULE EXPORT
-// ────────────────────────────────────────────────
 module.exports = (api, threadModel, userModel, dashBoardModel, globalModel, usersData, threadsData, dashBoardData, globalData) => {
   
-  // Load event handlers (dev or production)
   const handlerEvents = require(
     process.env.NODE_ENV === "development" ? "./handlerEvents.dev.js" : "./handlerEvents.js"
   )(api, threadModel, userModel, dashBoardModel, globalModel, usersData, threadsData, dashBoardData, globalData);
 
-  // Cooldown to prevent reaction spam
   const reactionCooldowns = new Map();
-  const COOLDOWN_MS = 4500; // 4.5 seconds
+  const COOLDOWN_MS = 4500;
 
-  // Helper: Check if user is bot admin
   const isBotAdmin = (userID) => global.GoatBot.config.adminBot.includes(userID);
 
   // ────────────────────────────────────────────────
-  //      REACTION COMMAND HANDLER (only admins)
+  //      REACTION COMMAND HANDLER (Fixed)
   // ────────────────────────────────────────────────
   async function handleReactionCommand(event, message) {
     const { threadID, userID, messageID, reaction } = event;
 
-    // Only bot admins can use reaction commands
+    // ১. রিঅ্যাকশনটি কি আমাদের কমান্ড লিস্টে আছে? না থাকলে চেক করার দরকার নেই।
+    const allReactions = Object.values(REACTION_COMMANDS).flat();
+    if (!allReactions.includes(reaction)) return;
+
+    // ২. শুধুমাত্র বট অ্যাডমিনরা রিঅ্যাকশন কমান্ড ব্যবহার করতে পারবে
     if (!isBotAdmin(userID)) return;
 
-    // Cooldown check
+    // ৩. টার্গেট আইডি নির্ধারণ (যে মেসেজে রিঅ্যাকশন দেওয়া হয়েছে তার মালিক)
+    // event.senderID এখানে রিঅ্যাকশন দাতা। মেসেজের মালিক পেতে message.senderID বা event.messageID থেকে ডেটা নিতে হয়।
+    // GoatBot এ রিঅ্যাকশন ইভেন্টে senderID হচ্ছে রিঅ্যাকশন দাতা।
+    // আমরা টার্গেট হিসেবে মেসেজের অরিজিনাল সেন্ডারকে ধরবো।
+    
+    let targetID;
+    try {
+        const msgInfo = await api.getMessageInfo(messageID, threadID);
+        targetID = msgInfo.senderID;
+    } catch (e) {
+        // যদি মেসেজ ইনফো না পাওয়া যায় তবে লজিক স্কিপ করবে
+        return;
+    }
+
+    // ৪. কোoldown চেক
     const key = `${threadID}_${userID}`;
     const now = Date.now();
     if (now - (reactionCooldowns.get(key) || 0) < COOLDOWN_MS) return;
     reactionCooldowns.set(key, now);
 
-    const targetID = event.targetID || event.senderID;
-
-    // Prevent targeting self or other admins (except unban)
+    // ৫. নিজেকে বা অন্য অ্যাডমিনকে টার্গেট করা থেকে রক্ষা (ব্যতিক্রম: unban)
     if (reaction !== REACTION_COMMANDS.unban) {
       if (targetID === userID || isBotAdmin(targetID)) {
+        // শুধু তখনই মেসেজ দিবে যদি রিঅ্যাকশনটি আমাদের নির্দিষ্ট কমান্ডের সাথে মিলে যায়
         return message.send("❌ You cannot target yourself or another admin.");
       }
     }
 
-    // ┌─────────────────────────────────────────────┐
-    // │                  KICK                       │
-    // └─────────────────────────────────────────────┘
+    // --- কমান্ড লজিক শুরু ---
+
     if (reaction === REACTION_COMMANDS.kick) {
       try {
         await api.removeUserFromGroup(targetID, threadID);
         api.setMessageReaction("✅", messageID, () => {}, true);
       } catch (err) {
-        console.error("[Kick Error]", err);
-        await message.send(`Kick failed: ${err.message || "unknown error"}`);
+        await message.send(`Kick failed: ${err.message}`);
       }
       return;
     }
 
-    // ┌─────────────────────────────────────────────┐
-    // │                 UNSEND                      │
-    // └─────────────────────────────────────────────┘
     if (REACTION_COMMANDS.unsend.includes(reaction)) {
       try {
         await api.unsendMessage(messageID);
-      } catch (err) {
-        // Silent ignore if message already gone
-        if (!err?.message?.includes("doesn't exist") && !err?.message?.includes("not found")) {
-          console.error("[Unsend Error]", err);
-        }
-      }
+      } catch (err) {}
       return;
     }
 
-    // ┌─────────────────────────────────────────────┐
-    // │                  MUTE                       │
-    // └─────────────────────────────────────────────┘
     if (reaction === REACTION_COMMANDS.mute) {
       try {
         await api.removeUserFromGroup(targetID, threadID);
-
         const data = await threadsData.get(threadID) || {};
         data.muted = data.muted || [];
         if (!data.muted.includes(targetID)) {
           data.muted.push(targetID);
           await threadsData.set(threadID, data);
         }
-
         api.setMessageReaction("✅", messageID, () => {}, true);
-        await message.send(`🔇 <@${targetID}> muted (removed + blocked from rejoining)`);
+        await message.send(`🔇 <@${targetID}> muted.`);
       } catch (err) {
-        console.error("[Mute Error]", err);
-        await message.send(`Mute failed → ${err.message || "?"}`);
+        await message.send(`Mute failed.`);
       }
       return;
     }
 
-    // ┌─────────────────────────────────────────────┐
-    // │                 UNMUTE                      │
-    // └─────────────────────────────────────────────┘
     if (reaction === REACTION_COMMANDS.unmute) {
       try {
         const data = await threadsData.get(threadID) || {};
-        if (!data.muted?.includes(targetID)) {
-          return message.send(`ℹ️ <@${targetID}> is not muted.`);
-        }
-
-        data.muted = data.muted.filter(id => id !== targetID);
+        data.muted = (data.muted || []).filter(id => id !== targetID);
         await threadsData.set(threadID, data);
-
         api.setMessageReaction("✅", messageID, () => {}, true);
-        await message.send(`🔊 <@${targetID}> has been unmuted.`);
-      } catch (err) {
-        console.error("[Unmute Error]", err);
-      }
+        await message.send(`🔊 <@${targetID}> unmuted.`);
+      } catch (err) {}
       return;
     }
 
-    // ┌─────────────────────────────────────────────┐
-    // │                  WARN                       │
-    // └─────────────────────────────────────────────┘
     if (reaction === REACTION_COMMANDS.warn) {
       try {
-        const data = await threadsData.get(threadID) || { warns: {} };
+        const data = await threadsData.get(threadID) || {};
         data.warns = data.warns || {};
-
         data.warns[targetID] = (data.warns[targetID] || 0) + 1;
         const count = data.warns[targetID];
-
         await threadsData.set(threadID, data);
-
-        await message.send(`⚠️ Warning [${count}/3] <@${targetID}>`);
-        api.setMessageReaction("⚠️", messageID, () => {}, true);
 
         if (count >= 3) {
           await api.removeUserFromGroup(targetID, threadID);
-          await message.send(`🚨 3 warnings reached → <@${targetID}> kicked.`);
+          await message.send(`🚨 <@${targetID}> kicked for 3 warnings.`);
           delete data.warns[targetID];
           await threadsData.set(threadID, data);
+        } else {
+          await message.send(`⚠️ Warning [${count}/3] for <@${targetID}>`);
         }
-      } catch (err) {
-        console.error("[Warn Error]", err);
-      }
+      } catch (err) {}
       return;
     }
 
-    // ┌─────────────────────────────────────────────┐
-    // │                   BAN                       │
-    // └─────────────────────────────────────────────┘
     if (reaction === REACTION_COMMANDS.ban) {
       try {
         await api.removeUserFromGroup(targetID, threadID);
-
         const data = await threadsData.get(threadID) || {};
         data.banned = data.banned || [];
         if (!data.banned.includes(targetID)) {
           data.banned.push(targetID);
           await threadsData.set(threadID, data);
         }
-
         api.setMessageReaction("✅", messageID, () => {}, true);
-        await message.send(`🚫 <@${targetID}> banned from this group.`);
-      } catch (err) {
-        console.error("[Ban Error]", err);
-        await message.send(`Ban failed → ${err.message || "?"}`);
-      }
+        await message.send(`🚫 <@${targetID}> banned.`);
+      } catch (err) {}
       return;
     }
 
-    // ┌─────────────────────────────────────────────┐
-    // │                  UNBAN                      │
-    // └─────────────────────────────────────────────┘
     if (reaction === REACTION_COMMANDS.unban) {
       try {
         const data = await threadsData.get(threadID) || {};
-        if (!data.banned?.includes(targetID)) {
-          return message.send(`ℹ️ <@${targetID}> is not banned.`);
-        }
-
-        data.banned = data.banned.filter(id => id !== targetID);
+        data.banned = (data.banned || []).filter(id => id !== targetID);
         await threadsData.set(threadID, data);
-
         api.setMessageReaction("✅", messageID, () => {}, true);
-        await message.send(`🔓 <@${targetID}> has been unbanned.`);
-      } catch (err) {
-        console.error("[Unban Error]", err);
-      }
+        await message.send(`🔓 <@${targetID}> unbanned.`);
+      } catch (err) {}
       return;
     }
   }
 
-  // ────────────────────────────────────────────────
-  //           MAIN EVENT LISTENER
-  // ────────────────────────────────────────────────
   return async function mainEventHandler(event) {
-    // Anti-inbox protection
-    if (
-      global.GoatBot.config.antiInbox === true &&
-      (event.senderID === event.threadID ||
-       event.userID === event.senderID ||
-       event.isGroup === false) &&
-      (event.senderID || event.userID || event.isGroup === false)
-    ) {
-      return;
-    }
+    if (global.GoatBot.config.antiInbox === true && (event.senderID === event.threadID || event.isGroup === false)) return;
 
     const message = createFuncMessage(api, event);
-
     await handlerCheckDB(usersData, threadsData, event);
 
     const handlers = await handlerEvents(event, message);
     if (!handlers) return;
 
-    const {
-      onAnyEvent, onFirstChat, onStart, onChat,
-      onReply, onEvent, handlerEvent, onReaction,
-      typ, presence, read_receipt
-    } = handlers;
-
-    onAnyEvent();
+    handlers.onAnyEvent();
 
     switch (event.type) {
       case "message":
       case "message_reply":
-      case "message_unsend":
-        onFirstChat();
-        onChat();
-        onStart();
-        onReply();
+        handlers.onFirstChat();
+        handlers.onChat();
+        handlers.onStart();
+        handlers.onReply();
         break;
-
       case "event":
-        handlerEvent();
-        onEvent();
+        handlers.handlerEvent();
+        handlers.onEvent();
         break;
-
       case "message_reaction":
-        onReaction();
+        handlers.onReaction();
         await handleReactionCommand(event, message);
         break;
-
-      case "typ":
-        typ();
-        break;
-
-      case "presence":
-        presence();
-        break;
-
-      case "read_receipt":
-        read_receipt();
-        break;
-
       default:
         break;
     }
