@@ -1,5 +1,4 @@
-// set bash title
-process.stdout.write("\x1b]2;Goat Bot V2 - Made by NTKhang\x1b\x5c");
+process.stdout.write("\x1b]2;𝑾𝑬𝑳𝑪𝑶𝑴𝑬 𝑻𝑶 𝒁𝑬𝑹𝑶 𝑻𝑾𝑶 𝑩𝑶𝑻 𝑷𝑹𝑶𝑱𝑬𝑪𝑻\x1b\x5c");
 const defaultRequire = require;
 
 function decode(text) {
@@ -36,11 +35,11 @@ function compareVersion(version1, version2) {
         const v2 = version2.split(".");
         for (let i = 0; i < 3; i++) {
                 if (parseInt(v1[i]) > parseInt(v2[i]))
-                        return 1; // version1 > version2
+                        return 1; 
                 if (parseInt(v1[i]) < parseInt(v2[i]))
-                        return -1; // version1 < version2
+                        return -1; 
         }
-        return 0; // version1 = version2
+        return 0; 
 }
 
 const { writeFileSync, readFileSync, existsSync, watch } = require("fs-extra");
@@ -98,7 +97,7 @@ for (const text of title) {
         const textColor = gradient("#FA8BFF", "#2BD2FF", "#2BFF88")(text);
         centerText(textColor, text.length);
 }
-let subTitle = `GoatBot V2@${currentVersion}- A simple Bot chat messenger use personal account`;
+let subTitle = `GoatBot V2@${currentVersion}- A Dhn er Bot chat messenger use personal account`;
 const subTitleArray = [];
 if (subTitle.length > maxWidth) {
         while (subTitle.length > maxWidth) {
@@ -112,10 +111,10 @@ if (subTitle.length > maxWidth) {
 else {
         subTitleArray.push(subTitle);
 }
-const author = ("Created by NTKhang with ♡");
-const modified = ("Modified by NeoKEX");
-const srcUrl = ("Source code: https://github.com/ntkhang03/Goat-Bot-V2");
-const fakeRelease = ("ALL VERSIONS NOT RELEASED HERE ARE FAKE");
+const author = ("𝑯𝑬𝑳𝑳𝑶 𝑼𝑺𝑬𝑹 𝑰𝑴 𝒁𝑬𝑹𝑶 𝑻𝑾𝑶 𝑩𝑶𝑻");
+const modified = ("𝑴𝑶𝑫𝑰𝑭𝑰𝑬𝑫 & 𝑬𝑵𝑯𝑨𝑵𝑪𝑬𝑫 𝑩𝒀 𝑺𝑰𝑭𝑼");
+const srcUrl = ("ORIGINAL ZERO TWO GIT: https://github.com/Ewr-sifu/GOATxZERO-V2");
+const fakeRelease = ("THANKS FOR USING ZERO TWO BOT");
 for (const t of subTitleArray) {
         const textColor2 = gradient("#9F98E8", "#AFF6CF")(t);
         centerText(textColor2, t.length);
