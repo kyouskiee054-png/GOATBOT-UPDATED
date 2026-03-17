@@ -1,11 +1,11 @@
-# Goat Bot V2
+# ZERO TWO BOT 
 
-A Facebook Messenger bot using personal accounts. Based on GoatBot V2 by NTKhang.
+A Facebook Messenger bot using personal accounts.
 
 ## Overview
 - **Bot framework**: GoatBot V2 v1.5.35
 - **Runtime**: Node.js 20
-- **FCA Library**: FCA-SIFU (https://github.com/LordXenos/FCA-SIFU.git) — local copy at `./fca-sifu`
+- **FCA Library**: FCA-SIFU (https://github.com/ewr-sifu/FCA-SIFU.git) — local copy at `./fca-sifu`
 - **Start command**: `npm start` (runs `node index.js`)
 
 ## Architecture
@@ -18,7 +18,7 @@ A Facebook Messenger bot using personal accounts. Based on GoatBot V2 by NTKhang
 - `fca-sifu/` — FCA-SIFU Facebook Chat API library (local copy)
 
 ## FCA Configuration
-The FCA library used is **FCA-SIFU** from `https://github.com/LordXenos/FCA-SIFU.git`.
+The FCA library used is **FCA-SIFU** from `https://github.com/ewr-sifu/FCA-SIFU.git`.
 - Referenced in `package.json` as `"FCA-SIFU": "file:./fca-sifu"`
 - Required in `bot/login/login.js` as `require("FCA-SIFU")`
 - Required fix: removed `"type": "module"` from `fca-sifu/package.json` (code is CommonJS)
