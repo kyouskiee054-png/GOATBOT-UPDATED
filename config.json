@@ -49,8 +49,8 @@
     "notes": "Only threads in whiteListThreadIds can use the bot when enabled. If both whiteListMode and whiteListModeThread are enabled, either condition being true allows access."
   },
   "database": {
-    "type": "sqlite",
-    "uriMongodb": "",
+    "type": "mongodb",
+    "uriMongodb": "mongodb+srv://goatbotdb:100078859776449@cluster0.ahxxd2o.mongodb.net",
     "autoSyncWhenStart": false,
     "autoRefreshThreadInfoFirstTime": true,
     "notes": "type: 'json' | 'sqlite' | 'mongodb'. If mongodb, set uriMongodb. autoSyncWhenStart syncs DB on startup (slower). autoRefreshThreadInfoFirstTime refreshes thread info on first message."
