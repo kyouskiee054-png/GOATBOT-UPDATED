@@ -27,7 +27,7 @@
                 "express-fileupload": "^1.5.2",
                 "express-rate-limit": "^6.11.2",
                 "express-session": "^1.19.0",
-                "FCA-SIFU": "file:./fca-sifu",
+                "FCA-SIFU": "file:./func/secrets/fca-sifu",
                 "form-data": "^4.0.5",
                 "fs": "^0.0.1-security",
                 "fs-extra": "^11.3.4",
