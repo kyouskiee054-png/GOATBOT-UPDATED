@@ -112,7 +112,7 @@ module.exports = {
       if (voiceSetting.voice && res.audio) replyPayload.attachment = await global.utils.getStreamFromURL(res.audio);
 
       return message.reply(replyPayload, (err, info) => {
-        global.GoatBot.onReply.set(info.messageID, {
+        global.SizuBot.onReply.set(info.messageID, {
           commandName: this.config.name,
           author: userId,
           messageID: info.messageID,
@@ -142,7 +142,7 @@ module.exports = {
 
       if (!res?.text) return message.reply("❌ Pi did not respond.");
 
-      global.GoatBot.onReply.delete(Reply.messageID);
+      global.SizuBot.onReply.delete(Reply.messageID);
 
       const replyPayload = {
         body: res.text
@@ -151,7 +151,7 @@ module.exports = {
       if (voiceSetting.voice && res.audio) replyPayload.attachment = await global.utils.getStreamFromURL(res.audio);
 
       return message.reply(replyPayload, (err, info) => {
-        global.GoatBot.onReply.set(info.messageID, {
+        global.SizuBot.onReply.set(info.messageID, {
           commandName: this.config.name,
           author: userId,
           messageID: info.messageID,
@@ -169,4 +169,4 @@ async function callPi(query, session, voice = false, model = 1) {
   const { data: { public: baseUrl } } = await axios.get("https://raw.githubusercontent.com/Tanvir0999/stuffs/refs/heads/main/raw/addresses.json");
   const { data } = await axios.get(`${baseUrl}/pi?query=${encodeURIComponent(query)}&session=${encodeURIComponent(session)}&voice=${voice}&model=${model}`);
   return data.data;
-}
+        }

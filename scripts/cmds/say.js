@@ -1,96 +1,51 @@
-const axios = require('axios');
-const fs = require('fs-extra');
+const fs = require("fs");
+const axios = require("axios");
+const googleTTS = require("google-tts-api");
 
 module.exports = {
   config: {
     name: "say",
-    version: "1.7",
-    author: "Samir Œ",
+    aliases: [],
+    version: "1.1",
+    author: "SiFu",
     countDown: 5,
     role: 0,
-    category: "tts",
-    description: "bot will make your text into voice.",
+    shortDescription: {
+      en: "Convert text to Bangla voice"
+    },
+    longDescription: {
+      en: "Bot will speak your text in Bangla using Google TTS"
+    },
+    category: "media",
     guide: {
-      en: "{pn} your text (default will be 'en') | {pn} your text | [use two words ISO 639-1 code, ex: English-en, Bangla-bn, Hindi-hi or more, search Google for your language code]"
+      en: "{pn} <your bangla text>"
     }
   },
 
-  onStart: async function ({ api, args, message, event }) {
-    const { getPrefix } = global.utils;
-    const p = getPrefix(event.threadID);
-
-    let text;
-    let number = 'en';
-
-    if (event.type === "message_reply") {
-      text = event.messageReply.body;
-    } else {
-      if (args && args.length > 0) {
-        if (args.includes("|")) {
-          const splitArgs = args.join(" ").split("|").map(arg => arg.trim());
-          text = splitArgs[0];
-          number = splitArgs[1] || 'en';
-        } else {
-          text = args.join(" ");
-        }
-      } else {
-        text = '';
-      }
-    }
-
-    if (!text) {
-      return message.reply(`Please provide some text. Example:\n${p}say hi there`);
-    }
-
-    const path = `${__dirname}/tmp/tts.mp3`;
+  onStart: async function ({ args, message }) {
+    const text = args.join(" ");
+    if (!text) return message.reply("দয়া করে একটি বার্তা লিখুন!");
 
     try {
-      if (text.length <= 150) {
-        const response = await axios({
-          method: "get",
-          url: `https://translate.google.com/translate_tts?ie=UTF-8&tl=${number}&client=tw-ob&q=${encodeURIComponent(text)}`,
-          responseType: "stream"
-        });
+      const url = googleTTS.getAudioUrl(text, {
+        lang: 'bn',
+        slow: false,
+        host: 'https://translate.google.com'
+      });
 
-        const writer = fs.createWriteStream(path);
-        response.data.pipe(writer);
-        writer.on("finish", () => {
-          message.reply({
-            body: text,
-            attachment: fs.createReadStream(path)
-          }, () => {
-            fs.remove(path);
-          });
-        });
-      } else {
-        const chunkSize = 150;
-        const chunks = text.match(new RegExp(`.{1,${chunkSize}}`, 'g'));
+      const path = `${__dirname}/voice.mp3`;
+      const res = await axios.get(url, { responseType: 'arraybuffer' });
+      fs.writeFileSync(path, Buffer.from(res.data, "utf-8"));
 
-        for (let i = 0; i < chunks.length; i++) {
-          const response = await axios({
-            method: "get",
-            url: `https://translate.google.com/translate_tts?ie=UTF-8&tl=${number}&client=tw-ob&q=${encodeURIComponent(chunks[i])}`,
-            responseType: "stream"
-          });
+      await message.reply({
+        body: `🔈 বললাম: ${text}`,
+        attachment: fs.createReadStream(path)
+      });
 
-          const writer = fs.createWriteStream(path, { flags: i === 0 ? 'w' : 'a' });
-          response.data.pipe(writer);
-
-          if (i === chunks.length - 1) {
-            writer.on("finish", () => {
-              message.reply({
-                body: text,
-                attachment: fs.createReadStream(path)
-              }, () => {
-                fs.remove(path);
-              });
-            });
-          }
-        }
-      }
+      fs.unlinkSync(path);
     } catch (err) {
       console.error(err);
-      message.reply("An error occurred while trying to convert your text to speech or send it as an attachment. Please try again later.");
+      message.reply("❌ ভয়েস বানাতে সমস্যা হয়েছে!");
     }
   }
 };
