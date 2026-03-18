@@ -11,7 +11,7 @@
   },
   "language": "en",
   "notesLanguage": "ISO 639-1 code. Available: vi (Vietnamese), en (English)",
-  "nickNameBot": "{Sassa}",
+  "nickNameBot": "Sassa",
   "prefix": "-",
   "adminPrefix": "-",
   "notes_adminPrefix": "A second prefix only usable by bot admins (role 2+). Leave empty string or null to disable.",
